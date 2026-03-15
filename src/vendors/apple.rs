@@ -38,7 +38,7 @@ impl BatteryProvider for AppleBattery {
 
         Ok(BatteryStats {
             level,
-            is_charging: status == "Charging",
+            is_charging: status != "Discharging",
             start_threshold: None,
             stop_threshold: None, // Asahi threshold support is wip or via different smc keys
             vendor: "Apple Silicon".to_string(),

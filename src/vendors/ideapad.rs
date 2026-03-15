@@ -83,7 +83,7 @@ impl BatteryProvider for IdeaPadBattery {
 
         Ok(BatteryStats {
             level,
-            is_charging: status == "Charging",
+            is_charging: status != "Discharging",
             start_threshold: None,
             stop_threshold: if conservation { Some(60) } else { Some(100) },
             vendor: "IdeaPad".to_string(),

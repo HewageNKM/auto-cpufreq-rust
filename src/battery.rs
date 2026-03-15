@@ -129,7 +129,7 @@ impl BatteryProvider for GenericLinuxBattery {
 
         Ok(BatteryStats {
             level,
-            is_charging: status == "Charging",
+            is_charging: status != "Discharging",
             start_threshold: None,
             stop_threshold: None,
             vendor: "Generic Linux".to_string(),

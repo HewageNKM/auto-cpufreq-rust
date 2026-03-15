@@ -83,7 +83,7 @@ impl BatteryProvider for GramBattery {
 
         Ok(BatteryStats {
             level,
-            is_charging: status == "Charging",
+            is_charging: status != "Discharging",
             start_threshold: None,
             stop_threshold: Some(limit),
             vendor: "LG Gram".to_string(),

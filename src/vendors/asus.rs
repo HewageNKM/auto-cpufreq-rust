@@ -83,7 +83,7 @@ impl BatteryProvider for AsusBattery {
 
         Ok(BatteryStats {
             level,
-            is_charging: status == "Charging",
+            is_charging: status != "Discharging",
             start_threshold: start,
             stop_threshold: stop,
             vendor: "Asus".to_string(),
