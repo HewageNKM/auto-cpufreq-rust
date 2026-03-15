@@ -30,6 +30,24 @@ fn set_turbo(state: State<AppState>, enabled: bool) -> Result<(), String> {
     state.power_manager.set_turbo(enabled)
 }
 
+#[tauri::command]
+fn set_battery_threshold(start: u8, stop: u8) -> Result<(), String> {
+    use zenith_energy::battery;
+    let b = battery::get_vendor_battery();
+    b.set_thresholds(start, stop)
+}
+
+#[tauri::command]
+fn get_logs() -> Result<String, String> {
+    use std::process::Command;
+    let output = Command::new("journalctl")
+        .args(["-u", "zenith-energy.service", "-n", "100", "--no-pager"])
+        .output()
+        .map_err(|e| e.to_string())?;
+    
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let is_daemon = args.iter().any(|arg| arg == "--daemon");
@@ -58,7 +76,9 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_metrics,
             set_governor,
-            set_turbo
+            set_turbo,
+            get_logs,
+            set_battery_threshold
         ])
         .setup(|app| {
             let app_handle = app.handle().clone();

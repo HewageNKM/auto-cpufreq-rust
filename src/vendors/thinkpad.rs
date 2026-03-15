@@ -1,61 +1,10 @@
-use serde::{Serialize, Deserialize};
+use crate::battery::{BatteryProvider, BatteryStats};
 use std::fs;
 use std::path::Path;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct BatteryStats {
-    pub level: f32,
-    pub is_charging: bool,
-    pub start_threshold: Option<u8>,
-    pub stop_threshold: Option<u8>,
-    pub vendor: String,
-    pub health: Option<f32>,
-    pub cycle_count: Option<u32>,
-    pub energy_full: Option<f32>,
-    pub energy_full_design: Option<f32>,
-    pub power_now: Option<f32>,
-    pub time_remaining: Option<f32>, // in hours
-}
+pub struct ThinkPadBattery;
 
-pub trait BatteryProvider: Send + Sync {
-    fn get_stats(&self) -> Result<BatteryStats, String>;
-    fn set_thresholds(&self, start: u8, stop: u8) -> Result<(), String>;
-}
-
-pub fn get_vendor_battery() -> Box<dyn BatteryProvider> {
-    use crate::vendors::asus::AsusBattery;
-    use crate::vendors::ideapad::IdeaPadBattery;
-    use crate::vendors::thinkpad::ThinkPadBattery;
-    use crate::vendors::gram::GramBattery;
-    use crate::vendors::apple::AppleBattery;
-
-    // Discovery Logic
-    if Path::new("/sys/class/power_supply/BAT0/charge_control_end_threshold").exists() {
-        // Modern standard (ThinkPad, Asus, Samsung)
-        if fs::read_to_string("/sys/class/dmi/id/chassis_vendor").ok().map(|s| s.contains("ASUSTeK")).unwrap_or(false) {
-             return Box::new(AsusBattery::new());
-        }
-        return Box::new(ThinkPadBattery::new());
-    }
-
-    if Path::new("/sys/bus/platform/drivers/ideapad_acpi").exists() {
-        return Box::new(IdeaPadBattery::new());
-    }
-
-    if Path::new("/sys/devices/platform/lg-laptop").exists() {
-        return Box::new(GramBattery::new());
-    }
-
-    if Path::new("/sys/class/power_supply/macsmc-battery").exists() {
-        return Box::new(AppleBattery::new());
-    }
-
-    Box::new(GenericLinuxBattery::new())
-}
-
-pub struct GenericLinuxBattery;
-
-impl GenericLinuxBattery {
+impl ThinkPadBattery {
     pub fn new() -> Self {
         Self
     }
@@ -63,11 +12,14 @@ impl GenericLinuxBattery {
     fn read_sysfs(&self, path: &str) -> Option<String> {
         fs::read_to_string(path).ok().map(|s| s.trim().to_string())
     }
+
+    fn write_sysfs(&self, path: &str, value: &str) -> Result<(), String> {
+        fs::write(path, value).map_err(|e| format!("Failed to write to {}: {}", path, e))
+    }
 }
 
-impl BatteryProvider for GenericLinuxBattery {
+impl BatteryProvider for ThinkPadBattery {
     fn get_stats(&self) -> Result<BatteryStats, String> {
-        // Basic Linux implementation via /sys/class/power_supply/BAT0/
         let bat_path = "/sys/class/power_supply/BAT0";
         if !Path::new(bat_path).exists() {
             return Err("No battery found at BAT0".to_string());
@@ -113,12 +65,18 @@ impl BatteryProvider for GenericLinuxBattery {
             None
         };
 
+        let start = self.read_sysfs("/sys/class/power_supply/BAT0/charge_control_start_threshold")
+            .and_then(|s| s.parse::<u8>().ok());
+        
+        let stop = self.read_sysfs("/sys/class/power_supply/BAT0/charge_control_end_threshold")
+            .and_then(|s| s.parse::<u8>().ok());
+
         Ok(BatteryStats {
             level,
             is_charging: status == "Charging",
-            start_threshold: None,
-            stop_threshold: None,
-            vendor: "Generic Linux".to_string(),
+            start_threshold: start,
+            stop_threshold: stop,
+            vendor: "ThinkPad".to_string(),
             health,
             cycle_count,
             energy_full,
@@ -128,7 +86,9 @@ impl BatteryProvider for GenericLinuxBattery {
         })
     }
 
-    fn set_thresholds(&self, _start: u8, _stop: u8) -> Result<(), String> {
-        Err("Thresholds not supported by generic driver".to_string())
+    fn set_thresholds(&self, start: u8, stop: u8) -> Result<(), String> {
+        self.write_sysfs("/sys/class/power_supply/BAT0/charge_control_start_threshold", &start.to_string())?;
+        self.write_sysfs("/sys/class/power_supply/BAT0/charge_control_end_threshold", &stop.to_string())?;
+        Ok(())
     }
 }

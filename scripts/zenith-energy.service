@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/auto-cpufreq --daemon
+ExecStart=/usr/bin/zenith-energy --daemon
 Restart=always
 # Run as root to allow hardware sysfs writes
 User=root

@@ -1,12 +1,31 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
+
+// View Imports
+import { Dashboard } from "./views/Dashboard";
+import { Battery } from "./views/Battery";
+import { Analytics } from "./views/Analytics";
+import { Signals } from "./views/Signals";
+import { Core } from "./views/Core";
+import { About } from "./views/About";
+
+// Component Imports
+import { Sidebar } from "./components/layout/Sidebar";
 
 function App() {
   const [metrics, setMetrics] = useState(null);
   const [history, setHistory] = useState([]);
+  const [logs, setLogs] = useState("");
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [notification, setNotification] = useState(null);
+  const logRef = useRef(null);
+
+  const notify = (msg) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 3000);
+  };
 
   const formatTime = (hours) => {
     if (!hours) return "Calculating...";
@@ -20,115 +39,65 @@ function App() {
       invoke("get_metrics")
         .then((res) => {
           setMetrics(res);
-          setHistory(prev => [...prev.slice(-20), {
+          setHistory(prev => [...prev.slice(-29), {
             time: new Date().toLocaleTimeString(),
             usage: res.total_cpu_usage,
-            freq: res.cores[0]?.frequency || 0
           }]);
           setError(null);
         })
         .catch((err) => setError(err));
+      
+      if (activeTab === "logs") {
+        invoke("get_logs")
+          .then(setLogs)
+          .catch(console.error);
+      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [activeTab]);
 
-  const setGovernor = (gov) => {
-    invoke("set_governor", { governor: gov })
-      .catch((err) => setError(err));
-  };
+  useEffect(() => {
+    if (logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight;
+    }
+  }, [logs]);
 
-  if (!metrics) return <div className="app-container">Loading...</div>;
+  if (!metrics) return <div className="app-container" style={{background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>Loading Zenith-Energy Suite...</div>;
 
   return (
     <div className="app-container">
-      <header>
-        <h1>Zenith-Energy</h1>
-        <div className="nav">
-          <button className={activeTab === "dashboard" ? "active" : "flat"} onClick={() => setActiveTab("dashboard")}>Dashboard</button>
-          <button className={activeTab === "stats" ? "active" : "flat"} onClick={() => setActiveTab("stats")}>Analytics</button>
-        </div>
-        <div style={{ color: metrics.is_charging ? "#4ade80" : "#94a3b8", fontSize: "14px" }}>
-          {metrics.is_charging ? "Charging" : "Discharging"}
-        </div>
-      </header>
-
-      {error && <div style={{ color: "#ef4444", marginBottom: 16 }}>{error}</div>}
-
-      {activeTab === "dashboard" ? (
-        <>
-          <div className="metrics-grid">
-            <div className="card">
-              <div className="card-title">CPU Usage</div>
-              <div className="card-value">{metrics.total_cpu_usage.toFixed(1)}%</div>
-            </div>
-            <div className="card">
-              <div className="card-title">Load Avg</div>
-              <div className="card-value">{metrics.load_avg[0].toFixed(2)}</div>
-            </div>
-            <div className="card">
-              <div className="card-title">Battery</div>
-              <div className="card-value">
-                {metrics.battery_level ? `${metrics.battery_level}%` : "N/A"}
-              </div>
-              <div className="sub-stats">
-                {metrics.battery_time_remaining && (
-                  <div className="sub-stat">
-                    <span className="label">Remaining</span>
-                    <span className="val">{formatTime(metrics.battery_time_remaining)}</span>
-                  </div>
-                )}
-                {metrics.battery_health && (
-                  <div className="sub-stat">
-                    <span className="label">Health</span>
-                    <span className="val">{Math.round(metrics.battery_health)}%</span>
-                  </div>
-                )}
-                {metrics.battery_cycles !== null && (
-                  <div className="sub-stat">
-                    <span className="label">Cycles</span>
-                    <span className="val">{metrics.battery_cycles}</span>
-                  </div>
-                )}
-              </div>
-            </div>
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      
+      <div className="content-container">
+        <header>
+          <div className="status-indicator" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)', boxShadow: '0 0 8px var(--success)' }}></div>
+            <span style={{ fontSize: '11px', fontWeight: '800', letterSpacing: '0.05em', opacity: 0.7 }}>
+                {metrics.is_charging ? "AC POWER" : "BATTERY"}
+            </span>
           </div>
-
-          <div className="card" style={{ marginBottom: 32 }}>
-            <div className="card-title">Cores</div>
-            <div className="core-list">
-              {metrics.cores.map((core) => (
-                <div key={core.id} className="core-item">
-                  <span>Core {core.id}</span>
-                  <span>{core.usage.toFixed(1)}% / {core.frequency}MHz</span>
-                </div>
-              ))}
-            </div>
+          <div style={{ fontSize: '11px', fontWeight: '600', opacity: 0.5 }}>
+            {new Date().toLocaleTimeString()}
           </div>
-        </>
-      ) : (
-        <div className="stats-view">
-          <div className="card">
-            <div className="card-title">Performance History</div>
-            <div className="chart-container">
-              {history.map((h, i) => (
-                <div key={i} className="chart-bar-wrap">
-                  <div className="chart-bar" style={{ height: `${h.usage}%` }}></div>
-                  <span className="chart-label">{h.usage.toFixed(0)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="chart-legend">
-              CPU Usage (%) over last 20 seconds
-            </div>
-          </div>
-        </div>
-      )}
+        </header>
 
-      <div className="controls">
-        <button onClick={() => setGovernor("performance")}>Performance</button>
-        <button className="secondary" onClick={() => setGovernor("powersave")}>Powersave</button>
-        <button className="secondary" onClick={() => invoke("set_turbo", { enabled: true })}>Enable Turbo</button>
+        <main className="main-content">
+          {notification && (
+            <div className="toast-notification">
+              <span className="toast-icon">✅</span>
+              {notification}
+            </div>
+          )}
+          {error && <div className="glass-card" style={{ color: "#ef4444", borderColor: '#ef4444', marginBottom: '24px' }}>{error}</div>}
+          
+          {activeTab === "dashboard" && <Dashboard metrics={metrics} />}
+          {activeTab === "battery" && <Battery metrics={metrics} formatTime={formatTime} notify={notify} />}
+          {activeTab === "analytics" && <Analytics history={history} />}
+          {activeTab === "logs" && <Signals logs={logs} logRef={logRef} />}
+          {activeTab === "settings" && <Core notify={notify} />}
+          {activeTab === "about" && <About />}
+        </main>
       </div>
     </div>
   );
