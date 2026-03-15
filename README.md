@@ -1,6 +1,6 @@
-# Zenith-Energy
+# Zenith Energy
 
-A premium, high-performance Linux power management suite engineered with **Rust** and **Tauri 2.0**. Zenith-Energy represents the next generation of Linux CPU optimization, aiming for a professional "macOS-level" efficiency experience.
+A premium, high-performance Linux power management suite engineered with **Rust** and **Tauri 2.0**. Zenith Energy represents the next generation of Linux CPU optimization, aiming for a professional "macOS-level" efficiency experience.
 
 ## Credits
 Built on the foundations of the **auto-cpufreq** project. We honor the legacy logic while providing a completely new high-performance implementation.

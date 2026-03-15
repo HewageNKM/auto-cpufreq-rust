@@ -1,5 +1,6 @@
 use zenith_energy::monitor::{self, Monitor};
 use zenith_energy::power::{PowerManager, Governor};
+use zenith_energy::config::AppConfig;
 use std::sync::Mutex;
 use tauri::{Manager, State, menu::{Menu, MenuItem}, tray::{TrayIconBuilder, MouseButton, MouseButtonState, TrayIconEvent}};
 
@@ -16,6 +17,10 @@ fn get_metrics(state: State<AppState>) -> Result<monitor::SystemMetrics, String>
 
 #[tauri::command]
 fn set_governor(state: State<AppState>, governor: String) -> Result<(), String> {
+    let mut config = AppConfig::load();
+    config.governor_override = Some(governor.clone());
+    config.save()?;
+    
     let gov = match governor.as_str() {
         "performance" => Governor::Performance,
         "powersave" => Governor::Powersave,
@@ -27,11 +32,18 @@ fn set_governor(state: State<AppState>, governor: String) -> Result<(), String> 
 
 #[tauri::command]
 fn set_turbo(state: State<AppState>, enabled: bool) -> Result<(), String> {
+    let mut config = AppConfig::load();
+    config.turbo_override = Some(enabled);
+    config.save()?;
     state.power_manager.set_turbo(enabled)
 }
 
 #[tauri::command]
 fn set_battery_threshold(start: u8, stop: u8) -> Result<(), String> {
+    let mut config = AppConfig::load();
+    config.battery_threshold = stop;
+    config.save()?;
+    
     use zenith_energy::battery;
     let b = battery::get_vendor_battery();
     b.set_thresholds(start, stop)

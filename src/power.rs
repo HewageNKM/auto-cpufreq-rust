@@ -1,4 +1,6 @@
 use crate::monitor::SystemMetrics;
+use crate::config::AppConfig;
+use crate::battery;
 use std::process::Command;
 use std::fs;
 use std::path::Path;
@@ -169,36 +171,71 @@ impl PowerManager {
     }
 
     pub fn handle_state_change(&self, metrics: &SystemMetrics) {
+        let config = AppConfig::load();
+        
+        // Always ensure battery threshold is set according to config
+        let b = battery::get_vendor_battery();
+        let _ = b.set_thresholds(0, config.battery_threshold);
+
         if let Some(true) = metrics.is_charging {
-            // Charging: Max performance
-            let _ = self.apply_governor(Governor::Performance);
-            let _ = self.apply_epp(EnergyPreference::Performance);
+            // Charging: Max performance unless overridden
+            let gov = config.governor_override.as_deref().unwrap_or("performance");
+            let _ = self.apply_governor_str(gov);
+            
+            let epp = if gov == "performance" { EnergyPreference::Performance } else { EnergyPreference::BalancePerformance };
+            let _ = self.apply_epp(epp);
             let _ = self.apply_epb(0);
-            let _ = self.set_turbo(true);
+            
+            let turbo = config.turbo_override.unwrap_or(true);
+            let _ = self.set_turbo(turbo);
         } else {
             // Battery: Intelligent scaling (macOS-like heuristics)
             let battery_level = metrics.battery_level.unwrap_or(100.0);
             
+            let gov_override = config.governor_override;
+            let turbo_override = config.turbo_override;
+
+            if let Some(gov) = gov_override {
+                let _ = self.apply_governor_str(&gov);
+            }
+
             if battery_level > 20.0 {
                 // Normal battery use
-                if metrics.total_cpu_usage > 50.0 {
-                    let _ = self.apply_governor(Governor::Schedutil);
-                    let _ = self.apply_epp(EnergyPreference::BalancePerformance);
-                    let _ = self.apply_epb(6);
-                    let _ = self.set_turbo(metrics.total_cpu_usage > 90.0);
-                } else {
-                    let _ = self.apply_governor(Governor::Powersave);
-                    let _ = self.apply_epp(EnergyPreference::BalancePower);
-                    let _ = self.apply_epb(10);
-                    let _ = self.set_turbo(false);
+                if gov_override.is_none() {
+                    if metrics.total_cpu_usage > 50.0 {
+                        let _ = self.apply_governor(Governor::Schedutil);
+                        let _ = self.apply_epp(EnergyPreference::BalancePerformance);
+                        let _ = self.apply_epb(6);
+                    } else {
+                        let _ = self.apply_governor(Governor::Powersave);
+                        let _ = self.apply_epp(EnergyPreference::BalancePower);
+                        let _ = self.apply_epb(10);
+                    }
                 }
+                
+                let turbo = turbo_override.unwrap_or(metrics.total_cpu_usage > 90.0);
+                let _ = self.set_turbo(turbo);
             } else {
                 // Aggressive power saving below 20%
-                let _ = self.apply_governor(Governor::Powersave);
+                if gov_override.is_none() {
+                    let _ = self.apply_governor(Governor::Powersave);
+                }
                 let _ = self.apply_epp(EnergyPreference::Power);
                 let _ = self.apply_epb(15);
-                let _ = self.set_turbo(false);
+                
+                let turbo = turbo_override.unwrap_or(false);
+                let _ = self.set_turbo(turbo);
             }
         }
+    }
+
+    fn apply_governor_str(&self, gov: &str) -> Result<(), String> {
+        let g = match gov {
+            "performance" => Governor::Performance,
+            "powersave" => Governor::Powersave,
+            "schedutil" => Governor::Schedutil,
+            _ => return Err("Invalid governor".to_string()),
+        };
+        self.apply_governor(g)
     }
 }

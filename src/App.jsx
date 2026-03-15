@@ -63,7 +63,7 @@ function App() {
     }
   }, [logs]);
 
-  if (!metrics) return <div className="app-container" style={{background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>Loading Zenith-Energy Suite...</div>;
+  if (!metrics) return <div className="app-container" style={{background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>Loading Zenith Energy Suite...</div>;
 
   return (
     <div className="app-container">
@@ -95,7 +95,7 @@ function App() {
           {activeTab === "battery" && <Battery metrics={metrics} formatTime={formatTime} notify={notify} />}
           {activeTab === "analytics" && <Analytics history={history} />}
           {activeTab === "logs" && <Signals logs={logs} logRef={logRef} />}
-          {activeTab === "settings" && <Core notify={notify} />}
+          {activeTab === "settings" && <Core metrics={metrics} notify={notify} />}
           {activeTab === "about" && <About />}
         </main>
       </div>

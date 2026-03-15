@@ -1,6 +1,7 @@
 use sysinfo::{System, RefreshKind, CpuRefreshKind, MemoryRefreshKind};
 use serde::{Serialize, Deserialize};
 use crate::battery::{self};
+use crate::config::AppConfig;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CpuCoreInfo {
@@ -25,6 +26,7 @@ pub struct SystemMetrics {
     pub battery_cycles: Option<u32>,
     pub battery_time_remaining: Option<f32>,
     pub battery_vendor: String,
+    pub config: AppConfig,
 }
 
 pub struct Monitor {
@@ -99,6 +101,7 @@ impl Monitor {
             battery_cycles: cycles,
             battery_time_remaining: time_rem,
             battery_vendor: vendor,
+            config: AppConfig::load(),
         }
     }
 }

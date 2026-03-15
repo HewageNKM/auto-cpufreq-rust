@@ -1,5 +1,5 @@
 [Unit]
-Description=Zenith-Energy daemon
+Description=Zenith Energy daemon
 After=network.target
 
 [Service]

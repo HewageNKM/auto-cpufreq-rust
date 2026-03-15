@@ -55,7 +55,9 @@ sudo dpkg -i "$DEB_FILE"
 
 # 6. Enable Service
 echo -e "${BLUE}==> Setting up background daemon...${NC}"
+sudo mkdir -p /etc/zenith-energy
+sudo chmod 777 /etc/zenith-energy
 sudo systemctl daemon-reload
 sudo systemctl enable --now zenith-energy.service
 
-echo -e "${GREEN}SUCCESS: Zenith-Energy ${VERSION} installed and running.${NC}"
+echo -e "${GREEN}SUCCESS: Zenith Energy ${VERSION} installed and running.${NC}"

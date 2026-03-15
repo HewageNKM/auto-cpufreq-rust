@@ -1,6 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 
-export const Core = ({ notify }) => {
+export const Core = ({ metrics, notify }) => {
+    const activeGov = metrics.config.governor_override;
+    const turboEnabled = metrics.config.turbo_override;
+
     const setGovernor = (gov) => {
         invoke("set_governor", { governor: gov })
             .then(() => notify(`Power mode set to ${gov}`))
@@ -19,18 +22,35 @@ export const Core = ({ notify }) => {
                 <div className="glass-card settings-group">
                     <h3>Global Power Heuristics</h3>
                     <div className="action-row">
-                        <button className="btn-primary" onClick={() => setGovernor("performance")}>Performance</button>
-                        <button className="btn-secondary" onClick={() => setGovernor("powersave")}>Efficiency</button>
-                        <button className="btn-secondary" onClick={() => setGovernor("schedutil")}>Balanced</button>
+                        <button 
+                            className={activeGov === "performance" ? "btn-primary" : "btn-secondary"} 
+                            onClick={() => setGovernor("performance")}
+                        >Performance</button>
+                        <button 
+                            className={activeGov === "powersave" ? "btn-primary" : "btn-secondary"} 
+                            onClick={() => setGovernor("powersave")}
+                        >Efficiency</button>
+                        <button 
+                            className={activeGov === "schedutil" ? "btn-primary" : "btn-secondary"} 
+                            onClick={() => setGovernor("schedutil")}
+                        >Balanced</button>
                     </div>
+                    {activeGov && <p style={{fontSize: '10px', color: 'var(--success)', marginTop: '8px'}}>Override Active: {activeGov}</p>}
                 </div>
 
                 <div className="glass-card settings-group">
                     <h3>Turbo Boost Intel/AMD</h3>
                     <div className="action-row">
-                        <button className="btn-primary" onClick={() => setTurbo(true)}>Unlock Potential</button>
-                        <button className="btn-secondary" onClick={() => setTurbo(false)}>Lock Frequencies</button>
+                        <button 
+                            className={turboEnabled === true ? "btn-primary" : "btn-secondary"} 
+                            onClick={() => setTurbo(true)}
+                        >Unlock Potential</button>
+                        <button 
+                            className={turboEnabled === false ? "btn-primary" : "btn-secondary"} 
+                            onClick={() => setTurbo(false)}
+                        >Lock Frequencies</button>
                     </div>
+                    {turboEnabled !== undefined && <p style={{fontSize: '10px', color: 'var(--success)', marginTop: '8px'}}>Manual Lock: {turboEnabled ? 'ON' : 'OFF'}</p>}
                 </div>
             </div>
             
