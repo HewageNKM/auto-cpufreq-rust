@@ -7,6 +7,8 @@ pub struct AppConfig {
     pub governor_override: Option<String>,
     pub turbo_override: Option<bool>,
     pub battery_threshold: u8,
+    pub usb_autosuspend: Option<bool>,
+    pub sata_alpm: Option<bool>,
 }
 
 impl Default for AppConfig {
@@ -15,6 +17,8 @@ impl Default for AppConfig {
             governor_override: None,
             turbo_override: None,
             battery_threshold: 80,
+            usb_autosuspend: None,
+            sata_alpm: None,
         }
     }
 }

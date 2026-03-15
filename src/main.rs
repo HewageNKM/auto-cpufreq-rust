@@ -50,6 +50,24 @@ fn set_battery_threshold(start: u8, stop: u8) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn set_usb_autosuspend(state: State<AppState>, enabled: bool) -> Result<(), String> {
+    let mut config = AppConfig::load();
+    config.usb_autosuspend = Some(enabled);
+    config.save()?;
+    state.power_manager.set_usb_autosuspend(enabled);
+    Ok(())
+}
+
+#[tauri::command]
+fn set_sata_alpm(state: State<AppState>, enabled: bool) -> Result<(), String> {
+    let mut config = AppConfig::load();
+    config.sata_alpm = Some(enabled);
+    config.save()?;
+    state.power_manager.set_sata_alpm(enabled);
+    Ok(())
+}
+
+#[tauri::command]
 fn get_logs() -> Result<String, String> {
     use std::process::Command;
     let output = Command::new("journalctl")
@@ -93,7 +111,9 @@ fn main() {
             set_governor,
             set_turbo,
             get_logs,
-            set_battery_threshold
+            set_battery_threshold,
+            set_usb_autosuspend,
+            set_sata_alpm
         ])
         .setup(|app| {
             let app_handle = app.handle().clone();

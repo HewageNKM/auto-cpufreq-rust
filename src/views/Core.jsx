@@ -68,6 +68,42 @@ export const Core = ({ metrics, notify }) => {
                         <strong>Advice:</strong> Disabling Turbo significantly reduces heat generation and can prevent thermal throttling during long operations.
                     </div>
                 </div>
+
+                <div className="glass-card settings-group" style={{marginTop: '20px'}}>
+                    <h3>Advanced Peripheral Savers</h3>
+                    <p style={{fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '16px'}}>
+                        Control absolute passive energy-drop loops for peripherals.
+                    </p>
+                    <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px'}}>
+                            <div>
+                                <div style={{fontSize: '13px', fontWeight: '600'}}>USB Autosuspend</div>
+                                <div style={{fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px'}}>Power down idle USB ports to save wattage.</div>
+                            </div>
+                            <button 
+                                className={metrics.config?.usb_autosuspend === true ? "btn-primary" : "btn-secondary"} 
+                                onClick={() => invoke("set_usb_autosuspend", { enabled: !metrics.config?.usb_autosuspend })
+                                    .then(() => notify(`USB Autosuspend ${!metrics.config?.usb_autosuspend ? 'Enabled' : 'Disabled'}`))
+                                    .catch(console.error)}
+                                style={{padding: '6px 16px', fontSize: '12px'}}
+                            >{metrics.config?.usb_autosuspend === true ? "Enabled" : "Enable"}</button>
+                        </div>
+
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px'}}>
+                            <div>
+                                <div style={{fontSize: '13px', fontWeight: '600'}}>SATA ALPM</div>
+                                <div style={{fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px'}}>Aggressive power states for SCSI/SATA storage links.</div>
+                            </div>
+                            <button 
+                                className={metrics.config?.sata_alpm === true ? "btn-primary" : "btn-secondary"} 
+                                onClick={() => invoke("set_sata_alpm", { enabled: !metrics.config?.sata_alpm })
+                                    .then(() => notify(`SATA ALPM ${!metrics.config?.sata_alpm ? 'Enabled' : 'Disabled'}`))
+                                    .catch(console.error)}
+                                style={{padding: '6px 16px', fontSize: '12px'}}
+                            >{metrics.config?.sata_alpm === true ? "Enabled" : "Enable"}</button>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <div className="side-pane glass-card">

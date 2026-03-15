@@ -94,6 +94,22 @@ impl PowerManager {
         }
     }
 
+    pub fn set_usb_autosuspend(&self, enabled: bool) {
+        let val = if enabled { "auto" } else { "on" };
+        let _ = std::process::Command::new("sh")
+            .arg("-c")
+            .arg(format!("for d in /sys/bus/usb/devices/*/power/control; do echo {} > \"$d\" 2>/dev/null; done", val))
+            .status();
+    }
+
+    pub fn set_sata_alpm(&self, enabled: bool) {
+        let val = if enabled { "med_power_with_dipm" } else { "max_performance" };
+        let _ = std::process::Command::new("sh")
+            .arg("-c")
+            .arg(format!("for d in /sys/class/scsi_host/host*/link_power_management_policy; do echo {} > \"$d\" 2>/dev/null; done", val))
+            .status();
+    }
+
     fn write_sysfs(&self, path: &str, value: &str) -> Result<(), String> {
         fs::write(path, value).map_err(|e| format!("Failed to write to {}: {}", path, e))
     }
