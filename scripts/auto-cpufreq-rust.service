@@ -4,10 +4,10 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/auto-cpufreq-rust --daemon
+ExecStart=/usr/bin/auto-cpufreq --daemon
 Restart=always
-Environment=DISPLAY=:0
-Environment=XAUTHORITY=/home/%u/.Xauthority
+# Run as root to allow hardware sysfs writes
+User=root
 
 [Install]
 WantedBy=multi-user.target

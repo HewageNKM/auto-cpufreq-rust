@@ -24,7 +24,7 @@
       "csp": null
     }
   },
-  "bundle": {
+    "bundle": {
     "active": true,
     "targets": "all",
     "icon": [
@@ -33,6 +33,15 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "resources": [
+      "scripts/auto-cpufreq-rust.service"
+    ],
+    "deb": {
+      "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0", "libayatana-appindicator3-1"],
+      "files": {
+        "/usr/lib/systemd/system/auto-cpufreq-rust.service": "scripts/auto-cpufreq-rust.service"
+      }
+    }
   }
 }
