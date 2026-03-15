@@ -39,11 +39,59 @@ impl Governor {
     }
 }
 
-pub struct PowerManager;
+pub struct PowerManager {
+    consecutive_high_load_ticks: std::sync::atomic::AtomicU32,
+}
 
 impl PowerManager {
     pub fn new() -> Self {
-        Self
+        Self {
+            consecutive_high_load_ticks: std::sync::atomic::AtomicU32::new(0),
+        }
+    }
+
+    fn set_core_online(&self, id: usize, online: bool) -> Result<(), String> {
+        if id == 0 { return Ok(()); } 
+        let path = format!("/sys/devices/system/cpu/cpu{}/online", id);
+        let val = if online { "1" } else { "0" };
+        if std::path::Path::new(&path).exists() {
+            self.write_sysfs(&path, val)
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn park_cores(&self, max_online: Option<usize>) {
+        let cpu_dir = "/sys/devices/system/cpu";
+        if let Ok(entries) = std::fs::read_dir(cpu_dir) {
+            for entry in entries.flatten() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                if name.starts_with("cpu") && name[3..].chars().all(|c| c.is_ascii_digit()) {
+                    if let Ok(id) = name[3..].parse::<usize>() {
+                        if id > 0 {
+                            let online = match max_online {
+                                Some(m) => id < m,
+                                None => true, // unpark all
+                            };
+                            let _ = self.set_core_online(id, online);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn get_process_category(&self, name: &str) -> &'static str {
+        let n = name.to_lowercase();
+        if n.contains("steam") || n.contains("csgo") || n.contains("dota") || n.contains("cyberpunk") || n.contains("hl2") {
+            "gaming"
+        } else if n.contains("node") || n.contains("vscode") || n.contains("cargo") || n.contains("rustc") {
+            "development"
+        } else if n.contains("firefox") || n.contains("chrome") || n.contains("brave") {
+            "browsing"
+        } else {
+            "general"
+        }
     }
 
     fn write_sysfs(&self, path: &str, value: &str) -> Result<(), String> {
@@ -173,11 +221,20 @@ impl PowerManager {
     pub fn handle_state_change(&self, metrics: &SystemMetrics) {
         let config = AppConfig::load();
         
+        // AI Proactive Ruleset: Detect active process category
+        let mut is_gaming = false;
+        if let Some(proc) = metrics.top_processes.first() {
+            if self.get_process_category(&proc.name) == "gaming" {
+                is_gaming = true;
+            }
+        }
+
         // Always ensure battery threshold is set according to config
         let b = battery::get_vendor_battery();
         let _ = b.set_thresholds(0, config.battery_threshold);
 
         if let Some(true) = metrics.is_charging {
+            self.park_cores(None); // Unpark all on AC
             // Charging: Max performance unless overridden
             let gov = config.governor_override.as_deref().unwrap_or("performance");
             let _ = self.apply_governor_str(gov);
@@ -200,23 +257,38 @@ impl PowerManager {
             }
 
             if battery_level > 20.0 {
+                self.park_cores(None); // Unpark all
+                
                 // Normal battery use
                 if gov_override.is_none() {
                     if metrics.total_cpu_usage > 50.0 {
-                        let _ = self.apply_governor(Governor::Schedutil);
-                        let _ = self.apply_epp(EnergyPreference::BalancePerformance);
-                        let _ = self.apply_epb(6);
+                        let ticks = self.consecutive_high_load_ticks.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
+                        if ticks >= 2 { // Buffer switch by 2 consecutive loops (~10s)
+                            let _ = self.apply_governor(Governor::Schedutil);
+                            let _ = self.apply_epp(EnergyPreference::BalancePerformance);
+                            let _ = self.apply_epb(6);
+                        }
                     } else {
+                        self.consecutive_high_load_ticks.store(0, std::sync::atomic::Ordering::SeqCst);
                         let _ = self.apply_governor(Governor::Powersave);
                         let _ = self.apply_epp(EnergyPreference::BalancePower);
                         let _ = self.apply_epb(10);
                     }
                 }
                 
-                let turbo = turbo_override.unwrap_or(metrics.total_cpu_usage > 90.0);
+                let mut turbo = turbo_override.unwrap_or(metrics.total_cpu_usage > 90.0);
+                if is_gaming && metrics.total_cpu_usage > 70.0 {
+                    turbo = false; // Cap heat setup on battery gaming
+                }
                 let _ = self.set_turbo(turbo);
             } else {
                 // Aggressive power saving below 20%
+                if battery_level <= 15.0 {
+                    self.park_cores(Some(2)); // Park extra cores below 15%
+                } else {
+                    self.park_cores(None); // Unpark for 15-20%
+                }
+
                 if gov_override.is_none() {
                     let _ = self.apply_governor(Governor::Powersave);
                 }

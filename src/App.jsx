@@ -39,15 +39,22 @@ function App() {
       invoke("get_metrics")
         .then((res) => {
           setMetrics(res);
+          const avgFreq = res.cores.length > 0 
+            ? res.cores.reduce((sum, c) => sum + c.frequency, 0) / res.cores.length 
+            : 0;
+
           setHistory(prev => [...prev.slice(-29), {
             time: new Date().toLocaleTimeString(),
             usage: res.total_cpu_usage,
+            frequency: avgFreq,
+            temperature: res.cpu_temperature || 0,
+            battery: res.battery_level || 0
           }]);
           setError(null);
         })
         .catch((err) => setError(err));
       
-      if (activeTab === "logs") {
+      if (activeTab === "logs" || activeTab === "signals") {
         invoke("get_logs")
           .then(setLogs)
           .catch(console.error);
@@ -66,7 +73,7 @@ function App() {
   if (!metrics) return <div className="app-container" style={{background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>Loading Zenith Energy Suite...</div>;
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${metrics.battery_level <= 15.0 && !metrics.is_charging ? 'power-saver-theme' : ''}`}>
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
       <div className="content-container">
@@ -93,7 +100,7 @@ function App() {
           
           {activeTab === "dashboard" && <Dashboard metrics={metrics} />}
           {activeTab === "battery" && <Battery metrics={metrics} formatTime={formatTime} notify={notify} />}
-          {activeTab === "analytics" && <Analytics history={history} />}
+          {activeTab === "analytics" && <Analytics history={history} metrics={metrics} />}
           {activeTab === "logs" && <Signals logs={logs} logRef={logRef} />}
           {activeTab === "settings" && <Core metrics={metrics} notify={notify} />}
           {activeTab === "about" && <About />}

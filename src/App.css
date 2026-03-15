@@ -28,6 +28,18 @@
   }
 }
 
+.power-saver-theme {
+  --bg-color: #040406;
+  --panel-bg: rgba(0, 0, 0, 0.6);
+  --brand-accent: #ff4757; /* Emergency Red */
+  animation: pulse-dim 8s infinite ease-in-out;
+}
+
+@keyframes pulse-dim {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(0.85); }
+}
+
 body {
   margin: 0;
   font-family: 'Inter', -apple-system, system-ui, sans-serif;

@@ -60,6 +60,9 @@ fn get_logs() -> Result<String, String> {
     Ok(String::from_utf8_lossy(&output.stdout).to_string())
 }
 
+static LOW_BATTERY_NOTIFIED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+static HIGH_TEMP_NOTIFIED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let is_daemon = args.iter().any(|arg| arg == "--daemon");
@@ -107,6 +110,32 @@ fn main() {
                     
                     let state: State<AppState> = app_handle.state();
                     state.power_manager.handle_state_change(&metrics);
+
+                    // Desktop notification triggers
+                    use std::process::Command;
+                    if let (Some(lvl), Some(false)) = (metrics.battery_level, metrics.is_charging) {
+                        if lvl <= 15.0 {
+                            if !LOW_BATTERY_NOTIFIED.swap(true, std::sync::atomic::Ordering::SeqCst) {
+                                let _ = Command::new("notify-send")
+                                    .args(["Zenith Energy", "Critical Battery (≤15%): Core Parking Activated!"])
+                                    .status();
+                            }
+                        } else if lvl > 20.0 {
+                            LOW_BATTERY_NOTIFIED.store(false, std::sync::atomic::Ordering::SeqCst);
+                        }
+                    }
+
+                    if let Some(temp) = metrics.cpu_temperature {
+                        if temp >= 85.0 {
+                            if !HIGH_TEMP_NOTIFIED.swap(true, std::sync::atomic::Ordering::SeqCst) {
+                                let _ = Command::new("notify-send")
+                                    .args(["Zenith Energy", "High Thermal State: Adaptive scaling reducing boost limits."])
+                                    .status();
+                            }
+                        } else if temp < 75.0 {
+                            HIGH_TEMP_NOTIFIED.store(false, std::sync::atomic::Ordering::SeqCst);
+                        }
+                    }
                     
                     std::thread::sleep(interval);
                 }
@@ -135,10 +164,16 @@ fn main() {
                             window.set_focus().unwrap();
                         }
                         "perf" => {
+                            let mut config = AppConfig::load();
+                            config.governor_override = Some("performance".to_string());
+                            let _ = config.save();
                             let state: State<AppState> = app.state();
                             let _ = state.power_manager.apply_governor(Governor::Performance);
                         }
                         "save" => {
+                            let mut config = AppConfig::load();
+                            config.governor_override = Some("powersave".to_string());
+                            let _ = config.save();
                             let state: State<AppState> = app.state();
                             let _ = state.power_manager.apply_governor(Governor::Powersave);
                         }
