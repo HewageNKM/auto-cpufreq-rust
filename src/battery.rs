@@ -15,6 +15,10 @@ pub struct BatteryStats {
     pub energy_full_design: Option<f32>,
     pub power_now: Option<f32>,
     pub time_remaining: Option<f32>, // in hours
+    pub voltage_now: Option<f32>,    // in Volts
+    pub current_now: Option<f32>,    // in Amperes
+    pub capacity_design: Option<f32>, // in mAh or mWh
+    pub capacity_full: Option<f32>,   // in mAh or mWh
 }
 
 pub trait BatteryProvider: Send + Sync {
@@ -90,6 +94,16 @@ impl BatteryProvider for GenericLinuxBattery {
             .and_then(|s| s.parse::<f32>().ok());
         let cycle_count = self.read_sysfs(&format!("{}/cycle_count", bat_path))
             .and_then(|s| s.parse::<u32>().ok());
+        let voltage_now = self.read_sysfs(&format!("{}/voltage_now", bat_path))
+            .and_then(|s| s.parse::<f32>().ok().map(|v| v / 1_000_000.0));
+        let current_now = self.read_sysfs(&format!("{}/current_now", bat_path))
+            .and_then(|s| s.parse::<f32>().ok().map(|i| i / 1_000_000.0));
+        let capacity_design = self.read_sysfs(&format!("{}/energy_full_design", bat_path))
+            .or_else(|| self.read_sysfs(&format!("{}/charge_full_design", bat_path)))
+            .and_then(|s| s.parse::<f32>().ok());
+        let capacity_full = self.read_sysfs(&format!("{}/energy_full", bat_path))
+            .or_else(|| self.read_sysfs(&format!("{}/charge_full", bat_path)))
+            .and_then(|s| s.parse::<f32>().ok());
 
         let health = if let (Some(full), Some(design)) = (energy_full, energy_full_design) {
             Some((full / design) * 100.0)
@@ -125,6 +139,10 @@ impl BatteryProvider for GenericLinuxBattery {
             energy_full_design,
             power_now,
             time_remaining,
+            voltage_now,
+            current_now,
+            capacity_design,
+            capacity_full,
         })
     }
 

@@ -192,11 +192,11 @@ impl PowerManager {
             // Battery: Intelligent scaling (macOS-like heuristics)
             let battery_level = metrics.battery_level.unwrap_or(100.0);
             
-            let gov_override = config.governor_override;
+            let gov_override = config.governor_override.as_ref();
             let turbo_override = config.turbo_override;
 
             if let Some(gov) = gov_override {
-                let _ = self.apply_governor_str(&gov);
+                let _ = self.apply_governor_str(gov);
             }
 
             if battery_level > 20.0 {

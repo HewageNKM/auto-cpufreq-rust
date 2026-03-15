@@ -48,6 +48,10 @@ impl BatteryProvider for AppleBattery {
             energy_full_design: None,
             power_now: None,
             time_remaining: None,
+            voltage_now: None,
+            current_now: None,
+            capacity_design: None,
+            capacity_full: None,
         })
     }
 

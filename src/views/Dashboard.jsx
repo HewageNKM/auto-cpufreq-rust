@@ -40,17 +40,5 @@ export const Dashboard = ({ metrics }) => (
         </div>
       </div>
     </div>
-
-    <div className="side-pane glass-card">
-      <div className="label">Dashboard Settings</div>
-      <div className="mini-stat" style={{ padding: '8px 0' }}>
-        <span>Show Cores</span>
-        <input type="checkbox" defaultChecked />
-      </div>
-      <div className="mini-stat" style={{ padding: '8px 0' }}>
-        <span>High Refresh Rate</span>
-        <input type="checkbox" defaultChecked />
-      </div>
-    </div>
   </div>
 );

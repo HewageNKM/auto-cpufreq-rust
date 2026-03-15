@@ -26,6 +26,10 @@ pub struct SystemMetrics {
     pub battery_cycles: Option<u32>,
     pub battery_time_remaining: Option<f32>,
     pub battery_vendor: String,
+    pub battery_voltage: Option<f32>,
+    pub battery_current: Option<f32>,
+    pub battery_capacity_design: Option<f32>,
+    pub battery_capacity_full: Option<f32>,
     pub config: AppConfig,
 }
 
@@ -62,6 +66,10 @@ impl Monitor {
         let mut bat_level = None;
         let mut charging = None;
         let mut health = None;
+        let mut voltage = None;
+        let mut current = None;
+        let mut cap_design = None;
+        let mut cap_full = None;
         let mut cycles = None;
         let mut time_rem = None;
         let mut vendor = "None".to_string();
@@ -75,6 +83,10 @@ impl Monitor {
             cycles = stats.cycle_count;
             time_rem = stats.time_remaining;
             vendor = stats.vendor;
+            voltage = stats.voltage_now;
+            current = stats.current_now;
+            cap_design = stats.capacity_design;
+            cap_full = stats.capacity_full;
         }
 
         use std::process::Command;
@@ -101,6 +113,10 @@ impl Monitor {
             battery_cycles: cycles,
             battery_time_remaining: time_rem,
             battery_vendor: vendor,
+            battery_voltage: voltage,
+            battery_current: current,
+            battery_capacity_design: cap_design,
+            battery_capacity_full: cap_full,
             config: AppConfig::load(),
         }
     }

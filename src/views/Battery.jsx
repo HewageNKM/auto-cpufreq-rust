@@ -59,15 +59,38 @@ export const Battery = ({ metrics, formatTime, notify }) => {
               Restricting the maximum charge level significantly extends the chemical lifespan of your lithium-ion cells.
            </p>
         </div>
+
+        <div className="glass-card" style={{ marginTop: '24px' }}>
+          <div className="label">Technical Vitals (Advanced Telemetry)</div>
+          <div className="stats-grid" style={{ marginTop: '16px' }}>
+            <div className="mini-stat">
+              <span className="label">Potential (Voltage)</span>
+              <span className="val">{metrics.battery_voltage?.toFixed(2) || "N/A"} V</span>
+            </div>
+            <div className="mini-stat">
+              <span className="label">Flow Rate (Current)</span>
+              <span className="val">{metrics.battery_current?.toFixed(3) || "N/A"} A</span>
+            </div>
+            <div className="mini-stat">
+              <span className="label">Design Capacity</span>
+              <span className="val">{(metrics.battery_capacity_design || 0).toFixed(0)}</span>
+            </div>
+            <div className="mini-stat">
+              <span className="label">Full Charge Capacity</span>
+              <span className="val">{(metrics.battery_capacity_full || 0).toFixed(0)}</span>
+            </div>
+          </div>
+          <div style={{ marginTop: '16px', fontSize: '10px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+            Health calculation: ({((metrics.battery_capacity_full / metrics.battery_capacity_design) * 100).toFixed(1)}%) based on design vs current maximum.
+          </div>
+        </div>
       </div>
 
       <div className="side-pane glass-card">
         <div className="label">Battery Optimization</div>
-        <div className="settings-group" style={{ marginTop: '16px' }}>
-          <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Quick Presets</p>
-          <button className="btn-secondary" style={{ width: '100%', fontSize: '12px', marginBottom: '8px' }} onClick={() => updateThreshold(60)}>Conservation (60%)</button>
-          <button className="btn-secondary" style={{ width: '100%', fontSize: '12px', marginBottom: '8px' }} onClick={() => updateThreshold(80)}>Balanced (80%)</button>
-          <button className="btn-primary" style={{ width: '100%', fontSize: '12px' }} onClick={() => updateThreshold(100)}>Full Power (100%)</button>
+        <div style={{ marginTop: '16px', fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+          <p>Restricting the maximum charge level significantly extends the chemical lifespan of your lithium-ion cells.</p>
+          <p style={{ marginTop: '12px' }}>This setting is persisted to <code>/etc/zenith-energy/config.json</code> and applied automatically on boot.</p>
         </div>
       </div>
     </div>
