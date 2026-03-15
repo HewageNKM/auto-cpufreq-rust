@@ -81,7 +81,7 @@ impl PowerManager {
         }
 
         // Fallback to cpufreqctl
-        let status = Command::new("cpufreqctl.auto-cpufreq")
+        let status = Command::new("zenith-ctl")
             .arg("--governor")
             .arg(format!("--set={}", val))
             .status()
@@ -101,7 +101,7 @@ impl PowerManager {
             return Ok(());
         }
 
-        let status = Command::new("cpufreqctl.auto-cpufreq")
+        let status = Command::new("zenith-ctl")
             .arg("--epp")
             .arg(format!("--set={}", val))
             .status()
@@ -121,7 +121,7 @@ impl PowerManager {
             return Ok(());
         }
 
-        let status = Command::new("cpufreqctl.auto-cpufreq")
+        let status = Command::new("zenith-ctl")
             .arg("--epb")
             .arg(format!("--set={}", value))
             .status()
@@ -155,7 +155,7 @@ impl PowerManager {
 
         // Fallback
         let cmd_val = if enabled { "0" } else { "1" };
-        let status = Command::new("cpufreqctl.auto-cpufreq")
+        let status = Command::new("zenith-ctl")
             .arg("--no-turbo")
             .arg(format!("--set={}", cmd_val))
             .status()

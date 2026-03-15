@@ -12,7 +12,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "auto-cpufreq",
+        "title": "Zenith-Energy",
         "width": 800,
         "height": 600,
         "resizable": true,
@@ -35,7 +35,8 @@
       "icons/icon.ico"
     ],
     "resources": [
-      "scripts/zenith-energy.service"
+      "scripts/zenith-energy.service",
+      "scripts/zenith-ctl.sh"
     ],
     "linux": {
       "deb": {
@@ -45,7 +46,8 @@
           "libayatana-appindicator3-1"
         ],
         "files": {
-          "/usr/lib/systemd/system/zenith-energy.service": "scripts/zenith-energy.service"
+          "/usr/lib/systemd/system/zenith-energy.service": "scripts/zenith-energy.service",
+          "/usr/bin/zenith-ctl": "scripts/zenith-ctl.sh"
         }
       }
     }

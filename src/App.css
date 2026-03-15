@@ -75,6 +75,12 @@ body {
   .sidebar-brand { padding: 0; justify-content: center; }
 }
 
+.logo-container img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
 .nav-links {
   display: flex;
   flex-direction: column;
