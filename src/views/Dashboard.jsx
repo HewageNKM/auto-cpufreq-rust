@@ -12,6 +12,10 @@ export const Dashboard = ({ metrics }) => {
     return `${h}h ${m}m`;
   };
 
+  const activeProfile = metrics.config?.manual_override 
+    ? (metrics.config.manual_override === "performance" ? metrics.config.ac_profile : metrics.config.bat_profile)
+    : (metrics.is_charging ? metrics.config?.ac_profile : metrics.config?.bat_profile);
+
   return (
     <div className="dashboard-layout" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Top Diagnostics Roll-up */}
@@ -73,7 +77,24 @@ export const Dashboard = ({ metrics }) => {
           <div className="value" style={{ fontSize: '20px', color: 'var(--brand-accent)', textTransform: 'capitalize' }}>
             {metrics.config?.manual_override ? metrics.config.manual_override : "Auto-Pilot (AI)"}
           </div>
-          <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Current system-wide steering state</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '10px', padding: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Governor</span>
+              <span style={{ fontWeight: '600', color: 'var(--text-main)', textTransform: 'capitalize' }}>{activeProfile?.governor || "Checking..."}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Turbo Boost</span>
+              <span style={{ color: activeProfile?.turbo ? 'var(--success)' : '#fb1', fontWeight: '600' }}>
+                {activeProfile?.turbo ? 'ON' : 'OFF'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Core Parking</span>
+              <span style={{ color: activeProfile?.core_parking ? 'var(--success)' : 'var(--text-secondary)', fontWeight: '600' }}>
+                {activeProfile?.core_parking ? 'AUTO' : 'OFF'}
+              </span>
+            </div>
+          </div>
         </div>
 
         <div className="stat-card">
