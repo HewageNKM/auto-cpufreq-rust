@@ -1,14 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
 export const Core = ({ metrics, notify }) => {
-    const activeGov = metrics.config.governor_override;
-    const turboEnabled = metrics.config.turbo_override;
-
-    const setGovernor = (gov) => {
-        invoke("set_governor", { governor: gov })
-            .then(() => notify(`Power mode set to ${gov}`))
-            .catch(console.error);
-    };
+    const turboEnabled = metrics.config?.ac_profile?.turbo;
 
     const setTurbo = (enabled) => {
         invoke("set_turbo", { enabled })
@@ -24,27 +17,29 @@ export const Core = ({ metrics, notify }) => {
                     <p style={{fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '16px'}}>
                         Configure how the system prioritizes energy consumption vs computational throughput.
                     </p>
-                    <div className="action-row">
+                    <div className="action-row" style={{gap: '8px', display: 'flex', flexWrap: 'wrap'}}>
                         <button 
-                            className={activeGov === "performance" ? "btn-primary" : "btn-secondary"} 
-                            onClick={() => setGovernor("performance")}
-                        >Performance</button>
+                            className={!metrics.config?.manual_override ? "btn-primary" : "btn-secondary"} 
+                            onClick={() => invoke("set_operation_mode", { mode: "auto" }).then(() => notify("Switched to Auto-Pilot (AI)")).catch(console.error)}
+                            style={{flex: '1', fontSize: '12px', padding: '10px'}}
+                        >🤖 Auto-Pilot</button>
                         <button 
-                            className={activeGov === "powersave" ? "btn-primary" : "btn-secondary"} 
-                            onClick={() => setGovernor("powersave")}
-                        >Efficiency</button>
+                            className={metrics.config?.manual_override === "performance" ? "btn-primary" : "btn-secondary"} 
+                            onClick={() => invoke("set_operation_mode", { mode: "performance" }).then(() => notify("Always Performance Locked")).catch(console.error)}
+                            style={{flex: '1', fontSize: '12px', padding: '10px'}}
+                        >⚡ Performance</button>
                         <button 
-                            className={activeGov === "schedutil" ? "btn-primary" : "btn-secondary"} 
-                            onClick={() => setGovernor("schedutil")}
-                        >Balanced</button>
+                            className={metrics.config?.manual_override === "efficiency" ? "btn-primary" : "btn-secondary"} 
+                            onClick={() => invoke("set_operation_mode", { mode: "efficiency" }).then(() => notify("Always Efficiency Locked")).catch(console.error)}
+                            style={{flex: '1', fontSize: '12px', padding: '10px'}}
+                        >🔋 Efficiency</button>
                     </div>
-                    {activeGov && <p style={{fontSize: '10px', color: 'var(--success)', marginTop: '8px'}}>Manual Override: {activeGov.toUpperCase()}</p>}
+                    {metrics.config?.manual_override && <p style={{fontSize: '10px', color: 'var(--success)', marginTop: '8px'}}>Manual Override: {metrics.config?.manual_override.toUpperCase()}</p>}
                     <div style={{marginTop: '12px', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', fontSize: '11px'}}>
                         <strong>Note:</strong> 
-                        {activeGov === "performance" && " Forced high frequency for maximum responsiveness. Fans may increase."}
-                        {activeGov === "powersave" && " Aggressive clock scaling for maximum battery endurance."}
-                        {activeGov === "schedutil" && " Dynamic scaling based on kernel scheduler load."}
-                        {!activeGov && " Auto-pilot active. The engine dynamically fluctuates based on AC/DC state."}
+                        {metrics.config?.manual_override === "performance" && " Forces AC high-performance profiles strictly, ignoring cable sensors."}
+                        {metrics.config?.manual_override === "efficiency" && " Forces Battery deep powersave profiles strictly on all dimensions."}
+                        {(!metrics.config?.manual_override) && " Dynamic auto-switching presets accurately based on active power source."}
                     </div>
                 </div>
 

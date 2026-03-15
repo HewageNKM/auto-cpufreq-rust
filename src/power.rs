@@ -39,15 +39,11 @@ impl Governor {
     }
 }
 
-pub struct PowerManager {
-    consecutive_high_load_ticks: std::sync::atomic::AtomicU32,
-}
+pub struct PowerManager {}
 
 impl PowerManager {
     pub fn new() -> Self {
-        Self {
-            consecutive_high_load_ticks: std::sync::atomic::AtomicU32::new(0),
-        }
+        Self {}
     }
 
     fn set_core_online(&self, id: usize, online: bool) -> Result<(), String> {
@@ -249,75 +245,61 @@ impl PowerManager {
         let b = battery::get_vendor_battery();
         let _ = b.set_thresholds(0, config.battery_threshold);
 
-        if let Some(true) = metrics.is_charging {
-            self.park_cores(None); // Unpark all on AC
-            // Charging: Max performance unless overridden
-            let gov = config.governor_override.as_deref().unwrap_or("performance");
-            let _ = self.apply_governor_str(gov);
-            
-            let epp = if gov == "performance" { EnergyPreference::Performance } else { EnergyPreference::BalancePerformance };
-            let _ = self.apply_epp(epp);
-            let _ = self.apply_epb(0);
-            
-            let turbo = config.turbo_override.unwrap_or(true);
-            let _ = self.set_turbo(turbo);
+        // 🟢 1. Determine Base Profile State
+        let profile = if let Some(ov) = &config.manual_override {
+            if ov == "performance" { config.ac_profile.clone() } else { config.bat_profile.clone() }
+        } else if metrics.is_charging.unwrap_or(false) {
+            config.ac_profile.clone()
         } else {
-            // Battery: Intelligent scaling (macOS-like heuristics)
-            let battery_level = metrics.battery_level.unwrap_or(100.0);
-            
-            let gov_override = config.governor_override.as_ref();
-            let turbo_override = config.turbo_override;
+            config.bat_profile.clone()
+        };
 
-            if let Some(gov) = gov_override {
-                let _ = self.apply_governor_str(gov);
-            }
+        // 🟠 2. Apply Base Profile Parameters
+        let _ = self.apply_governor_str(&profile.governor);
+        let mut turbo = profile.turbo;
+        
+        if profile.core_parking {
+            self.park_cores(Some(2)); // Standard Core Parking
+        } else {
+            self.park_cores(None); // Unpark All
+        }
 
-            if battery_level > 20.0 {
-                self.park_cores(None); // Unpark all
-                
-                // Normal battery use
-                if gov_override.is_none() {
-                    if metrics.total_cpu_usage > 50.0 {
-                        let ticks = self.consecutive_high_load_ticks.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
-                        if ticks >= 2 { // Buffer switch by 2 consecutive loops (~10s)
-                            let _ = self.apply_governor(Governor::Schedutil);
-                            let _ = self.apply_epp(EnergyPreference::BalancePerformance);
-                            let _ = self.apply_epb(6);
-                        }
-                    } else {
-                        self.consecutive_high_load_ticks.store(0, std::sync::atomic::Ordering::SeqCst);
-                        let _ = self.apply_governor(Governor::Powersave);
-                        let _ = self.apply_epp(EnergyPreference::BalancePower);
-                        let _ = self.apply_epb(10);
-                    }
-                }
-                
-                let mut turbo = turbo_override.unwrap_or(metrics.total_cpu_usage > 90.0);
-                if is_gaming && metrics.total_cpu_usage > 70.0 {
-                    turbo = false; // Cap heat setup on battery gaming
-                }
-                let _ = self.set_turbo(turbo);
-            } else {
-                // Aggressive power saving below 20%
-                if battery_level <= 15.0 {
-                    self.park_cores(Some(2)); // Park extra cores below 15%
-                } else {
-                    self.park_cores(None); // Unpark for 15-20%
-                }
+        self.set_usb_autosuspend(profile.usb_autosuspend);
+        self.set_sata_alpm(profile.sata_alpm);
 
-                if gov_override.is_none() {
-                    let _ = self.apply_governor(Governor::Powersave);
-                }
+        // 🔴 3. Dynamic Automated Overlays (Safeguards)
+        let battery_level = metrics.battery_level.unwrap_or(100.0);
+        
+        if !metrics.is_charging.unwrap_or(false) {
+            // Emergency Power Saving below 15%
+            if battery_level <= 15.0 {
+                self.park_cores(Some(2));
+                let _ = self.apply_governor_str("powersave");
                 let _ = self.apply_epp(EnergyPreference::Power);
                 let _ = self.apply_epb(15);
-                
-                let turbo = turbo_override.unwrap_or(false);
-                let _ = self.set_turbo(turbo);
+                turbo = false;
+            } else if battery_level <= 20.0 {
+                let _ = self.apply_governor_str("powersave");
+                let _ = self.apply_epp(EnergyPreference::BalancePower);
+                let _ = self.apply_epb(10);
             }
+
+            // Smart Gaming capping capping heat drainage
+            if is_gaming && metrics.total_cpu_usage > 70.0 {
+                turbo = false; 
+            }
+        } else {
+             // Charge State Tuning overlays
+             if profile.governor == "performance" {
+                 let _ = self.apply_epp(EnergyPreference::Performance);
+                 let _ = self.apply_epb(0);
+             }
         }
+
+        let _ = self.set_turbo(turbo);
     }
 
-    fn apply_governor_str(&self, gov: &str) -> Result<(), String> {
+    pub fn apply_governor_str(&self, gov: &str) -> Result<(), String> {
         let g = match gov {
             "performance" => Governor::Performance,
             "powersave" => Governor::Powersave,

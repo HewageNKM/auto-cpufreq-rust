@@ -18,7 +18,7 @@ fn get_metrics(state: State<AppState>) -> Result<monitor::SystemMetrics, String>
 #[tauri::command]
 fn set_governor(state: State<AppState>, governor: String) -> Result<(), String> {
     let mut config = AppConfig::load();
-    config.governor_override = Some(governor.clone());
+    config.manual_override = Some(governor.clone());
     config.save()?;
     
     let gov = match governor.as_str() {
@@ -33,7 +33,8 @@ fn set_governor(state: State<AppState>, governor: String) -> Result<(), String> 
 #[tauri::command]
 fn set_turbo(state: State<AppState>, enabled: bool) -> Result<(), String> {
     let mut config = AppConfig::load();
-    config.turbo_override = Some(enabled);
+    config.ac_profile.turbo = enabled;
+    config.bat_profile.turbo = enabled;
     config.save()?;
     state.power_manager.set_turbo(enabled)
 }
@@ -52,7 +53,8 @@ fn set_battery_threshold(start: u8, stop: u8) -> Result<(), String> {
 #[tauri::command]
 fn set_usb_autosuspend(state: State<AppState>, enabled: bool) -> Result<(), String> {
     let mut config = AppConfig::load();
-    config.usb_autosuspend = Some(enabled);
+    config.ac_profile.usb_autosuspend = enabled;
+    config.bat_profile.usb_autosuspend = enabled;
     config.save()?;
     state.power_manager.set_usb_autosuspend(enabled);
     Ok(())
@@ -61,9 +63,22 @@ fn set_usb_autosuspend(state: State<AppState>, enabled: bool) -> Result<(), Stri
 #[tauri::command]
 fn set_sata_alpm(state: State<AppState>, enabled: bool) -> Result<(), String> {
     let mut config = AppConfig::load();
-    config.sata_alpm = Some(enabled);
+    config.ac_profile.sata_alpm = enabled;
+    config.bat_profile.sata_alpm = enabled;
     config.save()?;
     state.power_manager.set_sata_alpm(enabled);
+    Ok(())
+}
+
+#[tauri::command]
+fn set_operation_mode(state: State<AppState>, mode: String) -> Result<(), String> {
+    let mut config = AppConfig::load();
+    if mode == "auto" {
+        config.manual_override = None;
+    } else {
+        config.manual_override = Some(mode.clone());
+    }
+    config.save()?;
     Ok(())
 }
 
@@ -113,7 +128,8 @@ fn main() {
             get_logs,
             set_battery_threshold,
             set_usb_autosuspend,
-            set_sata_alpm
+            set_sata_alpm,
+            set_operation_mode
         ])
         .setup(|app| {
             let app_handle = app.handle().clone();
@@ -185,17 +201,17 @@ fn main() {
                         }
                         "perf" => {
                             let mut config = AppConfig::load();
-                            config.governor_override = Some("performance".to_string());
+                            config.manual_override = Some("performance".to_string());
                             let _ = config.save();
                             let state: State<AppState> = app.state();
-                            let _ = state.power_manager.apply_governor(Governor::Performance);
+                            let _ = state.power_manager.apply_governor_str("performance");
                         }
                         "save" => {
                             let mut config = AppConfig::load();
-                            config.governor_override = Some("powersave".to_string());
+                            config.manual_override = Some("efficiency".to_string());
                             let _ = config.save();
                             let state: State<AppState> = app.state();
-                            let _ = state.power_manager.apply_governor(Governor::Powersave);
+                            let _ = state.power_manager.apply_governor_str("powersave");
                         }
                         _ => {}
                     }

@@ -69,6 +69,14 @@ export const Dashboard = ({ metrics }) => {
         </div>
 
         <div className="stat-card">
+          <div className="label">Active Power Mode</div>
+          <div className="value" style={{ fontSize: '20px', color: 'var(--brand-accent)', textTransform: 'capitalize' }}>
+            {metrics.config?.manual_override ? metrics.config.manual_override : "Auto-Pilot (AI)"}
+          </div>
+          <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Current system-wide steering state</div>
+        </div>
+
+        <div className="stat-card">
           <div className="label">System Power Drainage</div>
           <div className="value" style={{ fontSize: '20px', color: metrics.battery_discharge_rate ? '#fb1' : 'var(--success)' }}>
             {metrics.battery_discharge_rate ? `${Math.abs(metrics.battery_discharge_rate).toFixed(1)} W` : "Live AC Feed"}

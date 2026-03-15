@@ -101,10 +101,18 @@ impl BatteryProvider for AsusBattery {
     }
 
     fn set_thresholds(&self, start: u8, stop: u8) -> Result<(), String> {
-        // Asus specific safety: stop usually must be > start
-        self.write_sysfs("/sys/class/power_supply/BAT0/charge_control_end_threshold", "100")?;
-        self.write_sysfs("/sys/class/power_supply/BAT0/charge_control_start_threshold", &start.to_string())?;
-        self.write_sysfs("/sys/class/power_supply/BAT0/charge_control_end_threshold", &stop.to_string())?;
+        let start_path = "/sys/class/power_supply/BAT0/charge_control_start_threshold";
+        let stop_path = "/sys/class/power_supply/BAT0/charge_control_end_threshold";
+
+        if Path::new(stop_path).exists() {
+            let _ = self.write_sysfs(stop_path, "100");
+        }
+        if Path::new(start_path).exists() {
+            let _ = self.write_sysfs(start_path, &start.to_string());
+        }
+        if Path::new(stop_path).exists() {
+            let _ = self.write_sysfs(stop_path, &stop.to_string());
+        }
         Ok(())
     }
 }
