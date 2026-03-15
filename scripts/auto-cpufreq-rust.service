@@ -1,0 +1,13 @@
+[Unit]
+Description=auto-cpufreq-rust daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/auto-cpufreq-rust --daemon
+Restart=always
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/%u/.Xauthority
+
+[Install]
+WantedBy=multi-user.target

@@ -18,6 +18,9 @@ pub struct SystemMetrics {
     pub uptime: u64,
     pub battery_level: Option<f32>,
     pub is_charging: Option<bool>,
+    pub battery_health: Option<f32>,
+    pub battery_cycles: Option<u32>,
+    pub battery_time_remaining: Option<f32>,
 }
 
 pub struct Monitor {
@@ -50,9 +53,16 @@ impl Monitor {
 
         let mut bat_level = None;
         let mut charging = None;
+        let mut health = None;
+        let mut cycles = None;
+        let mut time_rem = None;
+
         if let Ok(stats) = battery::GenericLinuxBattery::new().get_stats() {
             bat_level = Some(stats.level);
             charging = Some(stats.is_charging);
+            health = stats.health;
+            cycles = stats.cycle_count;
+            time_rem = stats.time_remaining;
         }
 
         SystemMetrics {
@@ -62,6 +72,9 @@ impl Monitor {
             uptime: System::uptime(),
             battery_level: bat_level,
             is_charging: charging,
+            battery_health: health,
+            battery_cycles: cycles,
+            battery_time_remaining: time_rem,
         }
     }
 }

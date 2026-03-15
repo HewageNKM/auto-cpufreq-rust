@@ -32,6 +32,39 @@ impl BatteryProvider for AsusBattery {
         let status = self.read_sysfs(&format!("{}/status", bat_path))
             .unwrap_or_else(|| "Unknown".to_string());
 
+        let energy_full = self.read_sysfs(&format!("{}/energy_full", bat_path))
+            .and_then(|s| s.parse::<f32>().ok());
+        let energy_now = self.read_sysfs(&format!("{}/energy_now", bat_path))
+            .and_then(|s| s.parse::<f32>().ok());
+        let energy_full_design = self.read_sysfs(&format!("{}/energy_full_design", bat_path))
+            .and_then(|s| s.parse::<f32>().ok());
+        let power_now = self.read_sysfs(&format!("{}/power_now", bat_path))
+            .and_then(|s| s.parse::<f32>().ok());
+        let cycle_count = self.read_sysfs(&format!("{}/cycle_count", bat_path))
+            .and_then(|s| s.parse::<u32>().ok());
+
+        let health = if let (Some(full), Some(design)) = (energy_full, energy_full_design) {
+            Some((full / design) * 100.0)
+        } else {
+            None
+        };
+
+        let time_remaining = if let (Some(now), Some(power), is_charging) = (energy_now, power_now, status == "Charging") {
+            if power > 0.0 {
+                if is_charging && energy_full.is_some() {
+                    Some((energy_full.unwrap() - now) / power)
+                } else if !is_charging {
+                    Some(now / power)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         let start = self.read_sysfs("/sys/class/power_supply/BAT0/charge_control_start_threshold")
             .and_then(|s| s.parse::<u8>().ok());
         
@@ -44,6 +77,12 @@ impl BatteryProvider for AsusBattery {
             start_threshold: start,
             stop_threshold: stop,
             vendor: "Asus".to_string(),
+            health,
+            cycle_count,
+            energy_full,
+            energy_full_design,
+            power_now,
+            time_remaining,
         })
     }
 

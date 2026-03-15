@@ -38,6 +38,7 @@ h1 {
   margin: 0;
   background: linear-gradient(to right, #38bdf8, #818cf8);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -72,6 +73,29 @@ h1 {
 .card-value {
   font-size: 32px;
   font-weight: 600;
+}
+
+.sub-stats {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sub-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.sub-stat .label {
+  color: var(--secondary-text);
+}
+
+.sub-stat .val {
+  color: var(--accent-color);
+  font-weight: 500;
 }
 
 .controls {

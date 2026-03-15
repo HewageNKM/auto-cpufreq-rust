@@ -6,6 +6,13 @@ function App() {
   const [metrics, setMetrics] = useState(null);
   const [error, setError] = useState(null);
 
+  const formatTime = (hours) => {
+    if (!hours) return "Calculating...";
+    const h = Math.floor(hours);
+    const m = Math.round((hours - h) * 60);
+    return `${h}h ${m}m`;
+  };
+
   useEffect(() => {
     const interval = setInterval(() => {
       invoke("get_metrics")
@@ -50,6 +57,26 @@ function App() {
           <div className="card-title">Battery</div>
           <div className="card-value">
             {metrics.battery_level ? `${metrics.battery_level}%` : "N/A"}
+          </div>
+          <div className="sub-stats">
+            {metrics.battery_time_remaining && (
+              <div className="sub-stat">
+                <span className="label">Remaining</span>
+                <span className="val">{formatTime(metrics.battery_time_remaining)}</span>
+              </div>
+            )}
+            {metrics.battery_health && (
+              <div className="sub-stat">
+                <span className="label">Health</span>
+                <span className="val">{Math.round(metrics.battery_health)}%</span>
+              </div>
+            )}
+            {metrics.battery_cycles !== null && (
+              <div className="sub-stat">
+                <span className="label">Cycles</span>
+                <span className="val">{metrics.battery_cycles}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -38,13 +38,51 @@ impl BatteryProvider for IdeaPadBattery {
             .map(|s| s == "1")
             .unwrap_or(false);
 
+        let energy_full = self.read_sysfs(&format!("{}/energy_full", bat_path))
+            .and_then(|s| s.parse::<f32>().ok());
+        let energy_now = self.read_sysfs(&format!("{}/energy_now", bat_path))
+            .and_then(|s| s.parse::<f32>().ok());
+        let energy_full_design = self.read_sysfs(&format!("{}/energy_full_design", bat_path))
+            .and_then(|s| s.parse::<f32>().ok());
+        let power_now = self.read_sysfs(&format!("{}/power_now", bat_path))
+            .and_then(|s| s.parse::<f32>().ok());
+        let cycle_count = self.read_sysfs(&format!("{}/cycle_count", bat_path))
+            .and_then(|s| s.parse::<u32>().ok());
+
+        let health = if let (Some(full), Some(design)) = (energy_full, energy_full_design) {
+            Some((full / design) * 100.0)
+        } else {
+            None
+        };
+
+        let time_remaining = if let (Some(now), Some(power), is_charging) = (energy_now, power_now, status == "Charging") {
+            if power > 0.0 {
+                if is_charging && energy_full.is_some() {
+                    Some((energy_full.unwrap() - now) / power)
+                } else if !is_charging {
+                    Some(now / power)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         Ok(BatteryStats {
             level,
             is_charging: status == "Charging",
-            // IdeaPad uses toggles, not specific % thresholds
             start_threshold: None,
             stop_threshold: if conservation { Some(60) } else { Some(100) },
             vendor: "IdeaPad".to_string(),
+            health,
+            cycle_count,
+            energy_full,
+            energy_full_design,
+            power_now,
+            time_remaining,
         })
     }
 
