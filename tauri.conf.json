@@ -24,7 +24,7 @@
       "csp": null
     }
   },
-    "bundle": {
+  "bundle": {
     "active": true,
     "targets": "all",
     "icon": [
@@ -37,10 +37,16 @@
     "resources": [
       "scripts/zenith-energy.service"
     ],
-    "deb": {
-      "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0", "libayatana-appindicator3-1"],
-      "files": {
-        "/usr/lib/systemd/system/zenith-energy.service": "scripts/zenith-energy.service"
+    "linux": {
+      "deb": {
+        "depends": [
+          "libwebkit2gtk-4.1-0",
+          "libgtk-3-0",
+          "libayatana-appindicator3-1"
+        ],
+        "files": {
+          "/usr/lib/systemd/system/zenith-energy.service": "scripts/zenith-energy.service"
+        }
       }
     }
   }

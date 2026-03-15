@@ -1,7 +1,7 @@
 [package]
 name = "zenith-energy"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 tauri = { version = "2.0.0-beta", features = [ "tray-icon" ] }
@@ -17,4 +17,4 @@ log = "0.4"
 env_logger = "0.11"
 
 [build-dependencies]
-tauri-build = "2.0.0-beta"
+tauri-build = { version = "2.0.0-beta", features = [] }

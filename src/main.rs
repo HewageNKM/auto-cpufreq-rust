@@ -1,5 +1,5 @@
-use auto_cpufreq_rust::monitor::{self, Monitor};
-use auto_cpufreq_rust::power::{PowerManager, Governor};
+use zenith_energy::monitor::{self, Monitor};
+use zenith_energy::power::{PowerManager, Governor};
 use std::sync::Mutex;
 use tauri::{Manager, State, menu::{Menu, MenuItem}, tray::{TrayIconBuilder, MouseButton, MouseButtonState, TrayIconEvent}};
 
@@ -10,7 +10,7 @@ struct AppState {
 
 #[tauri::command]
 fn get_metrics(state: State<AppState>) -> Result<monitor::SystemMetrics, String> {
-    let mut monitor = state.monitor.lock().map_err(|e| e.to_string())?;
+    let mut monitor = state.monitor.lock().map_err(|e: std::sync::PoisonError<_>| e.to_string())?;
     Ok(monitor.get_metrics())
 }
 
