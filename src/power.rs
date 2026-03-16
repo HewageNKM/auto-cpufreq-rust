@@ -273,8 +273,20 @@ impl PowerManager {
             _ => Tier::Extreme,
         };
 
-        println!("Autopilot: Load={:.1}%, Accel={:.1}, Rolling={:.1}% | Tier={:?}", 
-            current_load, accel, rolling_avg, tier);
+        if let Ok(metadata) = std::fs::metadata("/etc/zenith-energy/zenith-energy.log") {
+            if metadata.len() > 200_000 {
+                let _ = std::fs::write("/etc/zenith-energy/zenith-energy.log", "");
+            }
+        }
+        if let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("/etc/zenith-energy/zenith-energy.log") 
+        {
+            use std::io::Write;
+            let _ = writeln!(file, "[{}] Autopilot: Load={:.1}%, Accel={:.1}, Rolling={:.1}% | Tier={:?}", 
+                chrono::Local::now().format("%H:%M:%S"), current_load, accel, rolling_avg, tier);
+        }
 
         let mut is_gaming = false;
         if let Some(proc) = metrics.top_processes.first() {
@@ -316,7 +328,7 @@ impl PowerManager {
         // 🔴 4. Hardware-Accelerated continuous Autopilot Overlays
         if config.manual_override.is_none() {
             // Safety Caps: Battery < 15% forces Eco regardless of tier
-            if !is_charging && battery_level <= 15.0 {
+            if !is_charging && battery_level <= 20.0 {
                 let _ = self.apply_governor_str("powersave");
                 let _ = self.apply_epp(EnergyPreference::Power);
                 self.park_cores(Some(2));
