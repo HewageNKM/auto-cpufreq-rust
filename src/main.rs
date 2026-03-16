@@ -98,8 +98,8 @@ fn set_operation_mode(state: State<AppState>, mode: String) -> Result<(), String
 #[tauri::command]
 fn get_logs() -> Result<String, String> {
     use std::process::Command;
-    let output = Command::new("journalctl")
-        .args(["-u", "zenith-energy.service", "-n", "100", "--no-pager"])
+    let output = Command::new("tail")
+        .args(["-n", "100", "/var/log/zenith-energy.log"])
         .output()
         .map_err(|e| e.to_string())?;
     

@@ -85,7 +85,9 @@ impl PowerManager {
                                 Some(m) => id < m,
                                 None => true, // unpark all
                             };
-                            let _ = self.set_core_online(id, online);
+                            if let Err(e) = self.set_core_online(id, online) {
+                                println!("Error setting core {} online={}: {}", id, online, e);
+                            }
                         }
                     }
                 }
@@ -267,9 +269,12 @@ impl PowerManager {
         let tier = match current_load {
             l if l < 10.0 && rolling_avg < 15.0 && accel < 3.0 => Tier::Eco,
             l if l < 40.0 && rolling_avg < 45.0 => Tier::Balanced,
-            l if l < 75.0 || rolling_avg < 70.0 => Tier::Performance,
+            l if l < 75.0 && rolling_avg < 70.0 => Tier::Performance,
             _ => Tier::Extreme,
         };
+
+        println!("Autopilot: Load={:.1}%, Accel={:.1}, Rolling={:.1}% | Tier={:?}", 
+            current_load, accel, rolling_avg, tier);
 
         let mut is_gaming = false;
         if let Some(proc) = metrics.top_processes.first() {

@@ -10,6 +10,8 @@ ExecStart=/usr/bin/zenith-energy --daemon
 Restart=always
 # Run as root to allow hardware sysfs writes
 User=root
+StandardOutput=append:/var/log/zenith-energy.log
+StandardError=append:/var/log/zenith-energy.log
 
 [Install]
 WantedBy=multi-user.target

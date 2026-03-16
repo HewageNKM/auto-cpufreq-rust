@@ -73,6 +73,8 @@ done
 
 sudo mkdir -p /etc/zenith-energy
 sudo chmod 777 /etc/zenith-energy
+sudo touch /var/log/zenith-energy.log
+sudo chmod 644 /var/log/zenith-energy.log
 sudo systemctl daemon-reload
 sudo systemctl enable --now zenith-energy.service
 
