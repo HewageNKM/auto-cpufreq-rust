@@ -39,11 +39,25 @@ impl Governor {
     }
 }
 
-pub struct PowerManager {}
+use std::sync::atomic::{AtomicU32, Ordering};
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum Tier {
+    Eco,
+    Balanced,
+    Performance,
+    Extreme,
+}
+
+pub struct PowerManager {
+    prev_cpu_usage: AtomicU32,
+}
 
 impl PowerManager {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            prev_cpu_usage: AtomicU32::new(0_f32.to_bits()),
+        }
     }
 
     fn set_core_online(&self, id: usize, online: bool) -> Result<(), String> {
@@ -233,7 +247,21 @@ impl PowerManager {
     pub fn handle_state_change(&self, metrics: &SystemMetrics) -> std::time::Duration {
         let config = AppConfig::load();
         
-        // AI Proactive Ruleset: Detect active process category
+        // 1. Calculate Acceleration Derivative (Anti-Lag Butter)
+        let current_load = metrics.total_cpu_usage;
+        let prev_bits = self.prev_cpu_usage.load(Ordering::Relaxed);
+        let prev_load = f32::from_bits(prev_bits);
+        let accel = current_load - prev_load;
+        self.prev_cpu_usage.store(current_load.to_bits(), Ordering::Relaxed);
+
+        // 2. Determine Continuous Curve Tier (Autopilot Intelligence)
+        let tier = match current_load {
+            l if l < 10.0 && accel < 3.0 => Tier::Eco,
+            l if l < 40.0 => Tier::Balanced,
+            l if l < 75.0 => Tier::Performance,
+            _ => Tier::Extreme,
+        };
+
         let mut is_gaming = false;
         if let Some(proc) = metrics.top_processes.first() {
             if self.get_process_category(&proc.name) == "gaming" {
@@ -241,23 +269,23 @@ impl PowerManager {
             }
         }
 
-        let is_high_load = metrics.total_cpu_usage > 40.0;
         let battery_level = metrics.battery_level.unwrap_or(100.0);
+        let is_charging = metrics.is_charging.unwrap_or(false);
 
         // Always ensure battery threshold is set according to config
         let b = battery::get_vendor_battery();
         let _ = b.set_thresholds(0, config.battery_threshold);
 
-        // 🟢 1. Determine Base Profile State
+        // 🟢 2. Profile Selection node
         let profile = if let Some(ov) = &config.manual_override {
             if ov == "performance" { config.ac_profile.clone() } else { config.bat_profile.clone() }
-        } else if metrics.is_charging.unwrap_or(false) {
+        } else if is_charging {
             config.ac_profile.clone()
         } else {
             config.bat_profile.clone()
         };
 
-        // 🟠 2. Apply Base Profile Parameters
+        // 🟠 3. Apply Base settings
         let _ = self.apply_governor_str(&profile.governor);
         let mut turbo = profile.turbo;
         
@@ -266,62 +294,59 @@ impl PowerManager {
         } else {
             self.park_cores(None); 
         }
-
         self.set_usb_autosuspend(profile.usb_autosuspend);
         self.set_sata_alpm(profile.sata_alpm);
 
-        // 🔴 3. Dynamic Automated Overlays (Safeguards & Autopilot Intelligence)
-        if !metrics.is_charging.unwrap_or(false) {
-            // Emergency Power Saving below 15%
-            if battery_level <= 15.0 {
-                self.park_cores(Some(2));
+        // 🔴 4. Hardware-Accelerated continuous Autopilot Overlays
+        if config.manual_override.is_none() {
+            // Safety Caps: Battery < 15% forces Eco regardless of tier
+            if !is_charging && battery_level <= 15.0 {
                 let _ = self.apply_governor_str("powersave");
                 let _ = self.apply_epp(EnergyPreference::Power);
-                let _ = self.apply_epb(15);
+                self.park_cores(Some(2));
                 turbo = false;
-            } else if battery_level <= 20.0 {
-                let _ = self.apply_governor_str("powersave");
-                let _ = self.apply_epp(EnergyPreference::BalancePower);
-                let _ = self.apply_epb(10);
-            } else if is_high_load && config.manual_override.is_none() {
-                // ⚡ Anti-Lag Burst Lift (Autopilot Intelligence Mode ONLY)
-                // Lift caps temporarily for high demands avoiding battery stutter
-                let _ = self.apply_governor_str("performance");
-                self.park_cores(None);
-                turbo = true;
+            } else {
+                // Apply Continuous Curve (Hardware EPP overrides software Governor lags)
+                match tier {
+                    Tier::Eco => {
+                        let _ = self.apply_governor_str("powersave");
+                        let _ = self.apply_epp(EnergyPreference::Power);
+                        let _ = self.apply_epb(15);
+                        self.park_cores(Some(2));
+                        turbo = false;
+                    },
+                    Tier::Balanced => {
+                        let _ = self.apply_governor_str("powersave");
+                        let _ = self.apply_epp(EnergyPreference::BalancePower);
+                        let _ = self.apply_epb(8);
+                    },
+                    Tier::Performance => {
+                        let _ = self.apply_governor_str("performance");
+                        let _ = self.apply_epp(EnergyPreference::BalancePerformance);
+                        let _ = self.apply_epb(4);
+                        self.park_cores(None);
+                        turbo = true;
+                    },
+                    Tier::Extreme => {
+                        let _ = self.apply_governor_str("performance");
+                        let _ = self.apply_epp(EnergyPreference::Performance);
+                        let _ = self.apply_epb(0);
+                        self.park_cores(None);
+                        turbo = true;
+                    }
+                }
             }
-
-            if is_gaming && metrics.total_cpu_usage > 70.0 {
-                turbo = false; 
-            }
-        } else {
-             if config.manual_override.is_none() {
-                 if is_high_load {
-                     let _ = self.apply_governor_str("performance");
-                     turbo = true;
-                 } else {
-                     let _ = self.apply_governor_str("powersave");
-                     turbo = false; 
-                 }
-             }
-
-             // Charge State Tuning overlays
-             if profile.governor == "performance" {
-                 let _ = self.apply_epp(EnergyPreference::Performance);
-                 let _ = self.apply_epb(0);
-             }
         }
 
         let _ = self.set_turbo(turbo);
 
-        // 🔄 4. Return Adaptive Polling Cycle Time
-        if is_high_load || is_gaming {
-            std::time::Duration::from_secs(1)
+        // 🔄 5. Return Adaptive Tick Cycle rate
+        if tier == Tier::Performance || tier == Tier::Extreme || is_gaming {
+            std::time::Duration::from_secs(1) // High intelligence reacts instantly Node
         } else {
             std::time::Duration::from_secs(5)
         }
     }
-
     pub fn apply_governor_str(&self, gov: &str) -> Result<(), String> {
         let g = match gov {
             "performance" => Governor::Performance,
