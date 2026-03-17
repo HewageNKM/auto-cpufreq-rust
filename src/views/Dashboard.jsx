@@ -179,29 +179,44 @@ export const Dashboard = ({ metrics }) => {
           gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
           gap: '12px'
         }}>
-          {metrics.cores.map((core) => (
-            <div key={core.id} style={{
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid var(--border)',
-              borderRadius: '12px',
-              padding: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px'
-            }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Core {core.id}</div>
-              <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--brand-accent)' }}>{core.frequency} <span style={{ fontSize: '10px', fontWeight: '400', color: 'var(--text-secondary)' }}>MHz</span></div>
-              <div style={{ width: '100%', height: '3px', background: 'var(--border)', borderRadius: '2px', marginTop: '4px' }}>
-                <div style={{
-                  height: '100%',
-                  width: `${Math.min(100, (core.frequency / 5000) * 100)}%`,
-                  background: 'var(--brand-accent)',
-                  borderRadius: '2px',
-                  transition: 'width 0.3s ease'
-                }}></div>
+          {metrics.cores.map((core) => {
+            const isOffline = core.frequency <= 0;
+            return (
+              <div key={core.id} style={{
+                background: isOffline ? 'rgba(255, 0, 0, 0.01)' : 'rgba(255, 255, 255, 0.02)',
+                border: isOffline ? '1px dashed rgba(255,255,255,0.1)' : '1px solid var(--border)',
+                borderRadius: '12px',
+                padding: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                opacity: isOffline ? 0.5 : 1,
+                transition: 'all 0.3s ease'
+              }}>
+                <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Core {core.id}</span>
+                  {isOffline && <span style={{ color: '#fb1', fontSize: '9px', fontWeight: 'bold' }}>PARKED</span>}
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: '800', color: isOffline ? 'var(--text-secondary)' : 'var(--brand-accent)' }}>
+                  {isOffline ? 'OFFLINE' : `${core.frequency}`} 
+                  {!isOffline && <span style={{ fontSize: '10px', fontWeight: '400', color: 'var(--text-secondary)' }}> MHz</span>}
+                </div>
+                {!isOffline ? (
+                  <div style={{ width: '100%', height: '3px', background: 'var(--border)', borderRadius: '2px', marginTop: '4px' }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${Math.min(100, (core.frequency / 5000) * 100)}%`,
+                      background: 'var(--brand-accent)',
+                      borderRadius: '2px',
+                      transition: 'width 0.3s ease'
+                    }}></div>
+                  </div>
+                ) : (
+                  <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.03)', borderRadius: '2px', marginTop: '4px' }} />
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
