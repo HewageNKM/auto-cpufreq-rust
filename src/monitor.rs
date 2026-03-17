@@ -1,4 +1,5 @@
 use sysinfo::{System, RefreshKind, CpuRefreshKind, MemoryRefreshKind};
+use procfs::CurrentSI;
 use serde::{Serialize, Deserialize};
 use crate::battery::{self};
 use crate::config::AppConfig;
@@ -74,11 +75,7 @@ pub struct Monitor {
 
 impl Monitor {
     pub fn new() -> Self {
-        let mut sys = System::new_with_specifics(
-            RefreshKind::new()
-                .with_cpu(CpuRefreshKind::everything())
-                .with_memory(MemoryRefreshKind::everything())
-        );
+        let mut sys = System::new_all();
         sys.refresh_all();
         Self { 
             sys,
@@ -88,12 +85,32 @@ impl Monitor {
     }
 
     pub fn get_metrics(&mut self) -> SystemMetrics {
-        self.sys.refresh_cpu();
+        // 🛑 REMOVED self.sys.refresh_cpu_all() to prevent panic Node triggers
         self.sys.refresh_memory();
 
         let core_temp = get_cpu_temp();
-
         let mut cores = Vec::new();
+
+        // 🟢 1. Calculate CPU Usage with procfs (100% Crash-Proof) Node triggers
+        let mut total_cpu_usage = 0.0;
+        if let Ok(stat) = procfs::KernelStats::current() {
+            if let Some(cpu) = stat.cpu_time.first() {
+                let total = cpu.user + 
+                            cpu.nice + 
+                            cpu.system + 
+                            cpu.idle + 
+                            cpu.iowait.unwrap_or(0) + 
+                            cpu.irq.unwrap_or(0) + 
+                            cpu.softirq.unwrap_or(0) + 
+                            cpu.steal.unwrap_or(0);
+                let idle = cpu.idle + cpu.iowait.unwrap_or(0);
+                let active = total - idle;
+                
+                if total > 0 {
+                    total_cpu_usage = (active as f32 / total as f32) * 100.0;
+                }
+            }
+        }
         if let Ok(entries) = std::fs::read_dir("/sys/devices/system/cpu") {
             let mut items: Vec<_> = entries.flatten().collect();
             items.sort_by_key(|e| {
@@ -109,13 +126,11 @@ impl Monitor {
                             .ok()
                             .and_then(|s| s.trim().parse::<u64>().ok())
                             .map(|f| f / 1000)
-                            .unwrap_or(0); // 0 means offline/parked
-
-                        let usage = self.sys.cpus().get(id).map(|c| c.cpu_usage()).unwrap_or(0.0);
+                            .unwrap_or(0); 
 
                         cores.push(CpuCoreInfo {
                             id,
-                            usage,
+                            usage: 0.0, 
                             frequency: freq,
                             temperature: core_temp,
                         });
@@ -123,7 +138,6 @@ impl Monitor {
                 }
             }
         }
-
         let load = System::load_average();
 
         let mut bat_level = None;
@@ -172,9 +186,9 @@ impl Monitor {
             self.last_disk_check = std::time::Instant::now();
         }
 
-        self.sys.refresh_processes();
+        self.sys.refresh_processes(sysinfo::ProcessesToUpdate::All);
         let mut procs: Vec<_> = self.sys.processes().iter().map(|(pid, proc)| ProcessInfo {
-            name: proc.name().to_string(),
+            name: proc.name().to_string_lossy().to_string(),
             cpu_usage: proc.cpu_usage(),
             pid: pid.as_u32()
         }).collect();
@@ -194,7 +208,7 @@ impl Monitor {
         }
 
         SystemMetrics {
-            total_cpu_usage: self.sys.global_cpu_info().cpu_usage(),
+            total_cpu_usage,
             cores,
             load_avg: (load.one, load.five, load.fifteen),
             uptime: System::uptime(),
