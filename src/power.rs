@@ -120,7 +120,7 @@ impl PowerManager {
         let ideal_cores = if force_all_cores {
             self.total_cores
         } else {
-            ((self.total_cores as f32 * (rolling_avg / 100.0)) * 1.5).ceil() as usize
+            ((self.total_cores as f32 * (rolling_avg / 100.0)) * 1.25).ceil() as usize
         };
         let ideal_clamped = ideal_cores.clamp(CORE_MINIMUM, max_cores_limit);
 

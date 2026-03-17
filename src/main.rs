@@ -49,6 +49,7 @@ fn set_sata_alpm(state: State<AppState>, enabled: bool) -> Result<(), String> {
 
 #[tauri::command]
 fn set_operation_mode(_state: State<AppState>, mode: String) -> Result<(), String> {
+    println!("🔔 Tauri: set_operation_mode called with mode: {}", mode);
     let mut config = AppConfig::load();
     config.operation_mode = mode;
     config.save()?;

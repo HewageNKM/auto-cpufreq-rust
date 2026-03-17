@@ -80,6 +80,12 @@ export const Dashboard = ({ metrics }) => {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '10px', padding: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Profile Mode</span>
+              <span style={{ color: 'var(--brand-accent)', fontWeight: '600', textTransform: 'capitalize' }}>
+                {metrics.config?.operation_mode || "Auto"}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
               <span style={{ color: 'var(--text-secondary)' }}>Active Cores</span>
               <span style={{ fontWeight: '600', color: 'var(--text-main)' }}>
                 {metrics.daemon_unpark_count !== undefined && metrics.daemon_unpark_count !== null ? metrics.daemon_unpark_count : metrics.cores.filter(c => c.frequency > 0).length} / {metrics.cores.length} Online
