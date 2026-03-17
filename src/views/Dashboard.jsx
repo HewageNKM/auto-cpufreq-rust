@@ -129,14 +129,14 @@ export const Dashboard = ({ metrics }) => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
               <span style={{ color: 'var(--text-secondary)' }}>USB Suspend</span>
-              <span style={{ color: metrics.config?.ac_profile?.usb_autosuspend ? 'var(--success)' : 'var(--text-secondary)', fontWeight: 'bold' }}>
-                {metrics.config?.ac_profile?.usb_autosuspend ? 'AUTO' : 'OFF'}
+              <span style={{ color: metrics.config?.usb_autosuspend ? 'var(--success)' : 'var(--text-secondary)', fontWeight: 'bold' }}>
+                {metrics.config?.usb_autosuspend ? 'AUTO' : 'OFF'}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginTop: '4px' }}>
               <span style={{ color: 'var(--text-secondary)' }}>SATA ALPM</span>
-              <span style={{ color: metrics.config?.ac_profile?.sata_alpm ? 'var(--success)' : 'var(--text-secondary)', fontWeight: 'bold' }}>
-                {metrics.config?.ac_profile?.sata_alpm ? 'MED' : 'MAX'}
+              <span style={{ color: metrics.config?.sata_alpm ? 'var(--success)' : 'var(--text-secondary)', fontWeight: 'bold' }}>
+                {metrics.config?.sata_alpm ? 'MED' : 'MAX'}
               </span>
             </div>
           </div>
