@@ -92,13 +92,63 @@ export const Core = ({ metrics, notify }) => {
                         </tbody>
                     </table>
                 </div>
+
+                <div className="glass-card" style={{ marginTop: '24px' }}>
+                    <div className="label">Micro-Architecture SMT Topology</div>
+                    <div style={{ 
+                        marginTop: '20px', 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', 
+                        gap: '12px' 
+                    }}>
+                        {metrics.cores.map((c, i) => {
+                            const isPair = i % 2 !== 0; // Simplified SMT detection
+                            return (
+                                <div key={c.id} style={{
+                                    padding: '12px',
+                                    background: 'rgba(255,255,255,0.02)',
+                                    borderRadius: '8px',
+                                    border: isPair ? '1px dashed var(--border)' : '1px solid var(--border)',
+                                    textAlign: 'center'
+                                }}>
+                                    <div style={{ fontSize: '9px', fontWeight: '800', opacity: 0.5 }}>
+                                        {isPair ? `THREAD ${c.id}` : `CORE ${c.id}`}
+                                    </div>
+                                    <div style={{ fontSize: '14px', fontWeight: '800', marginTop: '4px' }}>
+                                        {c.governor}
+                                    </div>
+                                    {c.frequency > c.max_frequency * 0.9 && (
+                                        <div style={{ fontSize: '8px', color: 'var(--thermal-hot)', fontWeight: '900', marginTop: '4px' }}>
+                                            ⚠️ PRESSURE
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
             </div>
 
             <div className="side-pane glass-card">
-                <div className="label">Dynamic Integrity</div>
-                <div style={{ marginTop: '16px', fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                    <p>WattWise manages CPU P-states and C-states to balance thermal output vs computational demand.</p>
-                    <p style={{ marginTop: '12px' }}>Mode changes are applied instantly and persisted to system configuration.</p>
+                <div className="label">Thermal Vitals</div>
+                <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div className="mini-stat">
+                        <span className="label">Package Temp</span>
+                        <span className="val" style={{ color: (metrics.cpu_temperature || 0) > 80 ? 'var(--thermal-hot)' : 'var(--text-main)' }}>
+                            {metrics.cpu_temperature ? `${metrics.cpu_temperature.toFixed(1)}°C` : 'N/A'}
+                        </span>
+                    </div>
+                    <div className="mini-stat">
+                        <span className="label">Freq Ceiling</span>
+                        <span className="val">{Math.max(...metrics.cores.map(c => c.max_frequency))} MHz</span>
+                    </div>
+                    <div className="mini-stat">
+                        <span className="label">Throttle Events</span>
+                        <span className="val">{metrics.cores.filter(c => c.frequency > c.max_frequency * 0.95).length}</span>
+                    </div>
+                </div>
+                <div style={{ marginTop: '24px', fontSize: '11px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                    SMT pairs share physical execution units. WattWise optimizes these pairs to reduce context-switch overhead under power-saving tiers.
                 </div>
             </div>
         </div>

@@ -175,7 +175,7 @@ impl PowerManager {
         }
 
         let state_json = format!("{{\"unpark_count\": {}, \"tier\": \"{:?}\"}}", final_core_target, target_tier);
-        let _ = std::fs::write("/run/zenith-energy.state", state_json);
+        let _ = std::fs::write("/run/wattwise.state", state_json);
 
         // Eco-Exclusive advanced power savings
         if apply_eco_caps {

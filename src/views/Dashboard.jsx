@@ -99,7 +99,7 @@ export const Dashboard = ({ metrics }) => {
             <div className="stat-card" style={{ padding: '16px', background: 'rgba(255,255,255,0.02)' }}>
               <div className="label" style={{ fontSize: '10px' }}>Energy Engine</div>
               <div style={{ fontSize: '18px', fontWeight: '800', color: 'var(--success)', marginTop: '4px' }}>
-                {metrics.config?.operation_mode === 'auto' || !metrics.config?.operation_mode ? 'AUTOPILOT' : 'STATIC'}
+                {metrics.config?.operation_mode === 'auto' || !metrics.config?.operation_mode ? 'AUTOPILOT ENGINE' : 'STATIC LOCK'}
               </div>
             </div>
           </div>

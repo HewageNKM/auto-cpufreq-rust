@@ -15,6 +15,24 @@ const getSlope = (data) => {
   return (n * sumXY - sumX * sumY) / denom;
 };
 
+const Sparkline = ({ data, color, width = 240, height = 40 }) => {
+  if (data.length < 2) return null;
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data);
+  const range = max - min || 1;
+  const points = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * width;
+    const y = height - ((d - min) / range) * height;
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <svg width={width} height={height} style={{ overflow: 'visible' }}>
+      <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
+
 export const Analytics = ({ history, metrics }) => {
   const [activeFilter, setActiveFilter] = useState("usage");
 
@@ -97,10 +115,22 @@ export const Analytics = ({ history, metrics }) => {
           <div style={{ flex: 1 }}>
             <div className="label">Performance-to-Power Ratio</div>
             <h2 style={{ margin: '8px 0', fontSize: '22px' }}>System Efficiency Score</h2>
-            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
               Calculated by cross-referencing computational throughput against line-drainage. 
               Higher scores indicate optimal governor utilization.
-            </p>
+              <div style={{ marginTop: '12px', display: 'flex', gap: '24px' }}>
+                <div className="eco-box">
+                  <div className="label">Intelligent Grade</div>
+                  <div className="eco-value" style={{ color: efficiencyScore > 80 ? 'var(--success)' : 'var(--energy-amber)' }}>
+                    {efficiencyScore > 90 ? 'A+' : efficiencyScore > 80 ? 'A' : efficiencyScore > 60 ? 'B' : 'C'}
+                  </div>
+                </div>
+                <div className="eco-box">
+                  <div className="label">Drainage trend</div>
+                  <div className="eco-value">{wattage.toFixed(1)}W</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -172,11 +202,19 @@ export const Analytics = ({ history, metrics }) => {
           </select>
         </div>
 
-        <div className="eco-box">
-          <div className="label" style={{ color: 'var(--success)' }}>Eco-Impact Estimator</div>
-          <div className="eco-value">-{((wattage * 0.45) / 100).toFixed(3)}kg</div>
-          <div style={{ fontSize: '11px', fontWeight: '600' }}>Estimated CO2 Saved / Hour</div>
-          <p style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '8px' }}>
+        <div className="glass-card" style={{ padding: '20px' }}>
+          <div className="label">Eco-Impact & Discharge</div>
+          <div className="eco-box" style={{ marginTop: '12px' }}>
+             <div className="eco-value" style={{ color: 'var(--success)' }}>-{((wattage * 0.45) / 100).toFixed(3)}kg</div>
+             <div className="label" style={{ fontSize: '10px' }}>Estimated CO2 Saved / Hour</div>
+          </div>
+          <div style={{ marginTop: '20px' }}>
+            <div className="label" style={{ fontSize: '9px', marginBottom: '8px' }}>Real-time Discharge Waveform</div>
+            <div className="sparkline-container" style={{ height: '40px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '8px' }}>
+              <Sparkline data={history.map(h => h.usage * 0.5 + wattage * 0.5)} color="var(--success)" />
+            </div>
+          </div>
+          <p style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '12px' }}>
             Calculated based on session efficiency and average baseline consumption.
           </p>
         </div>

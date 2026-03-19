@@ -16,11 +16,9 @@ import { Sidebar } from "./components/layout/Sidebar";
 function App() {
   const [metrics, setMetrics] = useState(null);
   const [history, setHistory] = useState([]);
-  const [logs, setLogs] = useState("");
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [notification, setNotification] = useState(null);
-  const logRef = useRef(null);
 
   const notify = (msg) => {
     setNotification(msg);
@@ -53,22 +51,11 @@ function App() {
           setError(null);
         })
         .catch((err) => setError(err));
-      
-      if (activeTab === "logs" || activeTab === "signals") {
-        invoke("get_logs")
-          .then(setLogs)
-          .catch(console.error);
-      }
     }, 1000);
 
     return () => clearInterval(interval);
   }, [activeTab]);
 
-  useEffect(() => {
-    if (logRef.current) {
-      logRef.current.scrollTop = logRef.current.scrollHeight;
-    }
-  }, [logs]);
 
   if (!metrics) return <div className="app-container" style={{background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>Loading WattWise Suite...</div>;
 
@@ -101,7 +88,7 @@ function App() {
           {activeTab === "dashboard" && <Dashboard metrics={metrics} />}
           {activeTab === "battery" && <Battery metrics={metrics} formatTime={formatTime} notify={notify} />}
           {activeTab === "analytics" && <Analytics history={history} metrics={metrics} />}
-          {activeTab === "logs" && <Signals logs={logs} logRef={logRef} />}
+          {activeTab === "logs" && <Signals metrics={metrics} />}
           {activeTab === "settings" && <Core metrics={metrics} notify={notify} />}
           {activeTab === "about" && <About />}
         </main>

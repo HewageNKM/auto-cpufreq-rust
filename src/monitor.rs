@@ -3,6 +3,15 @@ use serde::{Serialize, Deserialize};
 use crate::battery;
 use crate::config::AppConfig;
 use procfs::CurrentSI; 
+use std::time::{SystemTime, UNIX_EPOCH};
+use chrono;
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SystemEvent {
+    pub timestamp: u64,
+    pub event_type: String,
+    pub description: String,
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CpuCoreInfo {
@@ -52,6 +61,7 @@ pub struct SystemMetrics {
     pub daemon_unpark_count: Option<u32>,
     pub daemon_max_perf_pct: Option<u32>,
     pub daemon_tier: Option<String>,
+    pub events: Vec<SystemEvent>,
 }
 
 pub struct Monitor {
@@ -62,13 +72,15 @@ pub struct Monitor {
     prev_active_ticks: u64,
     prev_core_ticks: Vec<(u64, u64)>,
     last_power_state: Option<bool>, 
+    last_mode: Option<String>,
+    events: Vec<SystemEvent>,
 }
 
 impl Monitor {
     pub fn new() -> Self {
         let mut sys = System::new();
         sys.refresh_memory();
-        Self { 
+        let mut monitor = Self { 
             sys,
             cached_disk: 0.0,
             last_disk_check: std::time::Instant::now() - std::time::Duration::from_secs(12),
@@ -76,7 +88,11 @@ impl Monitor {
             prev_active_ticks: 0,
             prev_core_ticks: Vec::new(),
             last_power_state: None,
-        }
+            last_mode: None,
+            events: Vec::new(),
+        };
+        monitor.load_events_from_log();
+        monitor
     }
 
     pub fn get_metrics(&mut self) -> SystemMetrics {
@@ -203,6 +219,8 @@ impl Monitor {
         let stats = battery.get_stats().ok();
         let load = System::load_average();
 
+        let config = AppConfig::load();
+
         SystemMetrics {
             total_cpu_usage,
             cores,
@@ -230,10 +248,83 @@ impl Monitor {
                 if let (Some(v), Some(c)) = (s.voltage_now, s.current_now) { Some(v * c) } else { None }
             }),
             top_processes,
-            config: AppConfig::load(),
+            events: self.update_events(stats.as_ref().map(|s| s.is_charging), config.operation_mode.clone()),
+            config,
             daemon_unpark_count: self.read_state("unpark_count"),
             daemon_max_perf_pct: self.read_state("max_perf_pct"),
             daemon_tier: self.read_state_str("tier"),
+        }
+    }
+
+    fn update_events(&mut self, is_charging: Option<bool>, mode: String) -> Vec<SystemEvent> {
+        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+        let mut new_events = Vec::new();
+
+        // AC/DC Detection
+        if let Some(charging) = is_charging {
+            if let Some(prev) = self.last_power_state {
+                if charging != prev {
+                    new_events.push(SystemEvent {
+                        timestamp: now,
+                        event_type: "POWER_SHIFT".to_string(),
+                        description: format!("Power source changed to {}", if charging { "AC Adapter" } else { "Battery" }),
+                    });
+                }
+            }
+            self.last_power_state = Some(charging);
+        }
+
+        // Mode Change Detection
+        if let Some(prev_mode) = &self.last_mode {
+            if mode != *prev_mode {
+                new_events.push(SystemEvent {
+                    timestamp: now,
+                    event_type: "MODE_SHIFT".to_string(),
+                    description: format!("System strategy shifted to {}", mode.to_uppercase()),
+                });
+            }
+        }
+        self.last_mode = Some(mode);
+
+        for ev in &new_events {
+            self.events.push(ev.clone());
+            self.log_to_file(ev);
+        }
+
+        // Limit event history to last 50 events in memory
+        if self.events.len() > 50 {
+            self.events.remove(0);
+        }
+
+        self.events.clone()
+    }
+
+    fn log_to_file(&self, event: &SystemEvent) {
+        use std::io::Write;
+        let log_path = "/var/log/wattwise.log";
+        
+        // Check size and rotate if > 1MB
+        if let Ok(meta) = std::fs::metadata(log_path) {
+            if meta.len() > 1024 * 1024 {
+                let _ = std::fs::rename(log_path, format!("{}.old", log_path));
+            }
+        }
+
+        if let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(log_path) 
+        {
+            let now = SystemTime::now();
+            let datetime: chrono::DateTime<chrono::Local> = now.into();
+            let timestamp = datetime.format("%Y-%m-%d %H:%M:%S").to_string();
+            
+            let line = format!("[{}] {}: {}\n", 
+                timestamp,
+                event.event_type, 
+                event.description
+            );
+            let _ = file.write_all(line.as_bytes());
         }
     }
 
@@ -254,6 +345,41 @@ impl Monitor {
             }
         }
         None
+    }
+
+    fn load_events_from_log(&mut self) {
+        let log_path = "/var/log/wattwise.log";
+        if let Ok(content) = std::fs::read_to_string(log_path) {
+            for line in content.lines().rev().take(20) {
+                // Parse line: "[2026-03-20 00:50:00] TYPE: DESCRIPTION"
+                if line.starts_with('[') && line.contains(']') {
+                    let parts: Vec<&str> = line.splitn(2, ']').collect();
+                    if parts.len() == 2 {
+                        let ts_str = parts[0].trim_start_matches('[');
+                        let rest = parts[1].trim();
+                        let type_desc: Vec<&str> = rest.splitn(2, ':').collect();
+                        if type_desc.len() == 2 {
+                            let event_type = type_desc[0].trim().to_string();
+                            let description = type_desc[1].trim().to_string();
+                            
+                            // Convert ts_str back to u64 timestamp
+                            let timestamp = chrono::NaiveDateTime::parse_from_str(ts_str, "%Y-%m-%d %H:%M:%S")
+                                .ok()
+                                .map(|dt| dt.and_utc().timestamp() as u64)
+                                .unwrap_or(0);
+                                
+                            self.events.push(SystemEvent {
+                                timestamp,
+                                event_type,
+                                description,
+                            });
+                        }
+                    }
+                }
+            }
+            // Sort by timestamp and keep newest
+            self.events.sort_by_key(|e| e.timestamp);
+        }
     }
 
     fn read_state(&self, key: &str) -> Option<u32> {
