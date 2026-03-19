@@ -350,7 +350,8 @@ impl Monitor {
     fn load_events_from_log(&mut self) {
         let log_path = "/var/log/wattwise.log";
         if let Ok(content) = std::fs::read_to_string(log_path) {
-            for line in content.lines().rev().take(20) {
+            let mut loaded_events = Vec::new();
+            for line in content.lines().rev().take(50) {
                 // Parse line: "[2026-03-20 00:50:00] TYPE: DESCRIPTION"
                 if line.starts_with('[') && line.contains(']') {
                     let parts: Vec<&str> = line.splitn(2, ']').collect();
@@ -362,13 +363,12 @@ impl Monitor {
                             let event_type = type_desc[0].trim().to_string();
                             let description = type_desc[1].trim().to_string();
                             
-                            // Convert ts_str back to u64 timestamp
                             let timestamp = chrono::NaiveDateTime::parse_from_str(ts_str, "%Y-%m-%d %H:%M:%S")
                                 .ok()
                                 .map(|dt| dt.and_utc().timestamp() as u64)
                                 .unwrap_or(0);
                                 
-                            self.events.push(SystemEvent {
+                            loaded_events.push(SystemEvent {
                                 timestamp,
                                 event_type,
                                 description,
@@ -377,7 +377,12 @@ impl Monitor {
                     }
                 }
             }
-            // Sort by timestamp and keep newest
+            // Add loaded events to self.events if they are not already there
+            for ev in loaded_events {
+                if !self.events.iter().any(|e| e.timestamp == ev.timestamp && e.description == ev.description) {
+                    self.events.push(ev);
+                }
+            }
             self.events.sort_by_key(|e| e.timestamp);
         }
     }

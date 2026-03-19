@@ -132,7 +132,7 @@ impl PowerManager {
         println!("Autopilot: Load={:.1}%, Rolling={:.1}% | Tier={:?}", cpu_usage, rolling_avg, target_tier);
 
         if *current_tier_lock != target_tier && last_trans_lock.elapsed() > Duration::from_secs(2) {
-            println!("🚀 Transition: {:?} -> {:?}", *current_tier_lock, target_tier);
+            self.log_event("MODE_SHIFT", &format!("System strategy transitioned: {:?} -> {:?}", *current_tier_lock, target_tier));
             self.apply_tier_hardware(target_tier);
             
             if force_turbo_off {
@@ -339,5 +339,21 @@ impl PowerManager {
 
     pub fn set_asus_fan_policy(&self, policy: u32) {
         let _ = self.safe_write("/sys/devices/platform/asus-nb-wmi/throttle_thermal_policy", &policy.to_string());
+    }
+
+    fn log_event(&self, event_type: &str, description: &str) {
+        use std::io::Write;
+        let log_path = "/var/log/wattwise.log";
+        let now = chrono::Local::now();
+        let timestamp = now.format("%Y-%m-%d %H:%M:%S").to_string();
+        
+        if let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(log_path) 
+        {
+            let line = format!("[{}] {}: {}\n", timestamp, event_type, description);
+            let _ = file.write_all(line.as_bytes());
+        }
     }
 }
