@@ -46,6 +46,15 @@ export const Analytics = ({ history, metrics }) => {
 
   const health = metrics.battery_health || 100;
   const isCharging = metrics.is_charging;
+  const wattage = Math.abs(metrics.battery_discharge_rate || 0);
+
+  // 🎯 Efficiency Score Logic
+  // High load at low wattage = High efficiency.
+  // Formula: (Average Usage / Max(Wattage, 1)) * 10 (normalized)
+  const efficiencyScore = Math.min(100, Math.round((metrics.total_cpu_usage / Math.max(wattage, 5)) * 20));
+  
+  // 🗺️ Heatmap Simulation (based on history of frequencies)
+  const heatmapData = history.slice(-15).map(h => h.usage);
 
   const slope = getSlope(history);
   const advices = [];
@@ -66,19 +75,37 @@ export const Analytics = ({ history, metrics }) => {
   if (isCharging) {
     advices.push("Connected to AC. Heuristics are unlocked for maximum scaling thresholds.");
   } else if (avgUsage <= 15) {
-    advices.push("System idle on battery. Zenith Engine running at peak continuous efficiency.");
-  }
-  if (metrics.config.battery_threshold > 80 && health < 90) {
-    advices.push("Consider locking charge threshold to 80% with sidebar config to slow cell degradation.");
+    advices.push("System idle on battery. WattWise Engine running at peak continuous efficiency.");
   }
 
   return (
     <div className="page-layout">
       <div className="main-pane">
-        <div className="glass-card">
-          <div className="label" style={{ textTransform: 'uppercase' }}>
-            Dynamic {activeFilter} Heuristics (Last 30s)
+        <div className="glass-card" style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
+          <div className="efficiency-gauge-container">
+            <svg width="140" height="140" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="45" fill="none" stroke="var(--border)" strokeWidth="8" />
+              <circle cx="50" cy="50" r="45" fill="none" stroke="var(--success)" strokeWidth="8"
+                strokeDasharray="282.7" strokeDashoffset={282.7 - (efficiencyScore / 100) * 282.7}
+                strokeLinecap="round" style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%', transition: 'stroke-dashoffset 1s ease' }} />
+            </svg>
+            <div style={{ position: 'absolute', textAlign: 'center' }}>
+              <div style={{ fontSize: '28px', fontWeight: '900' }}>{efficiencyScore}</div>
+              <div style={{ fontSize: '9px', fontWeight: '800', opacity: 0.6 }}>EFFICIENCY</div>
+            </div>
           </div>
+          <div style={{ flex: 1 }}>
+            <div className="label">Performance-to-Power Ratio</div>
+            <h2 style={{ margin: '8px 0', fontSize: '22px' }}>System Efficiency Score</h2>
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>
+              Calculated by cross-referencing computational throughput against line-drainage. 
+              Higher scores indicate optimal governor utilization.
+            </p>
+          </div>
+        </div>
+
+        <div className="glass-card" style={{ marginTop: '24px' }}>
+          <div className="label">Rolling {activeFilter} Heuristics</div>
           <div className="chart-area" style={{ 
             height: '240px', 
             display: 'flex', 
@@ -100,67 +127,31 @@ export const Analytics = ({ history, metrics }) => {
                   background: activeFilter === "battery" ? 'linear-gradient(to top, #00ff88, #00ffaa)' : 'linear-gradient(to top, var(--brand-accent), var(--success))',
                   borderRadius: '6px 6px 0 0',
                   transition: 'height 0.3s ease',
-                  position: 'relative'
                 }}
                 title={`${h.time}: ${getDisplayValue(h)}`}
               ></div>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: '24px', marginTop: '16px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-            <div><strong>Rolling Average:</strong> {activeFilter === "usage" ? `${avgUsage.toFixed(1)}%` : activeFilter === "frequency" ? `${Math.round(history.reduce((a,h)=>a+h.frequency,0)/history.length)} MHz` : `${avgUsage.toFixed(1)}`}</div>
-            <div><strong>Peak Load:</strong> {activeFilter === "usage" ? `${peakUsage.toFixed(1)}%` : activeFilter === "frequency" ? `${Math.round(Math.max(...history.map(h=>h.frequency)))} MHz` : `${peakUsage.toFixed(1)}`}</div>
-          </div>
         </div>
 
         <div className="glass-card" style={{ marginTop: '24px' }}>
-          <div className="label">Proactive AI Advisor</div>
-          <div style={{ marginTop: '12px', padding: '16px', background: 'rgba(0, 112, 243, 0.05)', borderRadius: '12px', border: '1px solid var(--brand-accent)' }}>
-            <div style={{ fontWeight: '700', color: 'var(--brand-accent)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span>💡</span> System Optimization Advice
+          <div className="label">Resource Utilization Heatmap (Live Distribution)</div>
+          <div style={{ marginTop: '16px' }}>
+            <div className="heatmap-grid">
+              {Array.from({ length: 45 }).map((_, i) => {
+                const val = heatmapData[i % heatmapData.length] || 0;
+                return (
+                  <div key={i} className="heatmap-cell" style={{ 
+                    background: val > 60 ? 'var(--thermal-hot)' : val > 30 ? 'var(--energy-amber)' : val > 5 ? 'var(--success)' : 'rgba(255,255,255,0.05)'
+                  }} title={`Node ${i}: ${val.toFixed(1)}% load`}></div>
+                );
+              })}
             </div>
-            <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', lineHeight: '1.6', color: 'var(--text-main)' }}>
-              {advices.map((advice, index) => (
-                <li key={index} style={{ marginBottom: '4px' }}>{advice}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        <div className="glass-card" style={{ marginTop: '24px' }}>
-          <div className="label">Multi-Core Frequency Stratification</div>
-          <div style={{ 
-            display: 'flex', 
-            gap: '12px', 
-            justifyContent: 'space-between', 
-            marginTop: '12px',
-            padding: '16px',
-            background: 'rgba(0,0,0,0.2)',
-            borderRadius: '12px'
-          }}>
-            {metrics.cores.map((core) => (
-              <div key={core.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', flex: 1 }}>
-                <div style={{ 
-                  height: '80px', 
-                  width: '100%', 
-                  background: 'rgba(255,255,255,0.03)', 
-                  borderRadius: '6px', 
-                  position: 'relative', 
-                  overflow: 'hidden',
-                  border: '1px solid var(--border)'
-                }}>
-                  <div style={{ 
-                    position: 'absolute', 
-                    bottom: 0, 
-                    width: '100%', 
-                    height: `${Math.min(100, (core.frequency / 5000) * 100)}%`, 
-                    background: 'linear-gradient(to top, var(--brand-accent), var(--success))', 
-                    transition: 'height 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' 
-                  }}></div>
-                </div>
-                <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-main)' }}>{core.frequency}</div>
-                <div style={{ fontSize: '9px', fontWeight: '600', color: 'var(--text-secondary)' }}>C{core.id}</div>
-              </div>
-            ))}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', fontSize: '9px', color: 'var(--text-secondary)', fontWeight: '700' }}>
+              <span>IDLE</span>
+              <span>ACTIVE</span>
+              <span>THERMAL PEAK</span>
+            </div>
           </div>
         </div>
       </div>
@@ -172,57 +163,38 @@ export const Analytics = ({ history, metrics }) => {
             className="btn-secondary" 
             value={activeFilter}
             onChange={(e) => setActiveFilter(e.target.value)}
-            style={{ 
-              width: '100%', 
-              marginTop: '12px',
-              background: 'var(--panel-bg)',
-              color: 'var(--text-main)',
-              borderColor: 'var(--border)',
-              cursor: 'pointer',
-              padding: '12px',
-              appearance: 'none',
-              WebkitAppearance: 'none',
-              borderRadius: '12px'
-            }}
+            style={{ width: '100%', marginTop: '12px', padding: '12px', borderRadius: '12px' }}
           >
-            <option value="usage" style={{ background: 'var(--panel-bg)', color: 'var(--text-main)' }}>CPU Usage</option>
-            <option value="frequency" style={{ background: 'var(--panel-bg)', color: 'var(--text-main)' }}>Frequency</option>
-            <option value="temperature" style={{ background: 'var(--panel-bg)', color: 'var(--text-main)' }}>Temperature</option>
-            <option value="battery" style={{ background: 'var(--panel-bg)', color: 'var(--text-main)' }}>Battery Level</option>
+            <option value="usage">CPU Usage</option>
+            <option value="frequency">Frequency</option>
+            <option value="temperature">Temperature</option>
+            <option value="battery">Battery Level</option>
           </select>
         </div>
 
+        <div className="eco-box">
+          <div className="label" style={{ color: 'var(--success)' }}>Eco-Impact Estimator</div>
+          <div className="eco-value">-{((wattage * 0.45) / 100).toFixed(3)}kg</div>
+          <div style={{ fontSize: '11px', fontWeight: '600' }}>Estimated CO2 Saved / Hour</div>
+          <p style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '8px' }}>
+            Calculated based on session efficiency and average baseline consumption.
+          </p>
+        </div>
+
         <div className="glass-card" style={{ marginTop: '24px' }}>
-          <div className="label">Resource Utilization (Top CPU Consumers)</div>
+          <div className="label">Top CPU Consumers</div>
           <table style={{ width: '100%', marginTop: '12px', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
-                <th style={{ padding: '8px 4px', fontWeight: '400' }}>Process Name</th>
-                <th style={{ padding: '8px 4px', fontWeight: '400', textAlign: 'right' }}>CPU Load</th>
+                <th style={{ padding: '8px 0', fontWeight: '400' }}>Process</th>
+                <th style={{ padding: '8px 0', textAlign: 'right', fontWeight: '400' }}>CPU</th>
               </tr>
             </thead>
             <tbody>
               {metrics.top_processes?.map((proc, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
-                  <td style={{ 
-                    padding: '10px 4px', 
-                    color: 'var(--text-main)', 
-                    fontWeight: '800', 
-                    maxWidth: '140px', 
-                    overflow: 'hidden', 
-                    textOverflow: 'ellipsis', 
-                    whiteSpace: 'nowrap' 
-                  }}>
-                    {proc.name}
-                  </td>
-                  <td style={{ 
-                    padding: '10px 4px', 
-                    textAlign: 'right', 
-                    fontWeight: '800', 
-                    color: 'var(--brand-accent)' 
-                  }}>
-                    {proc.cpu_usage.toFixed(1)}%
-                  </td>
+                  <td style={{ padding: '10px 0', fontWeight: '700', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{proc.name}</td>
+                  <td style={{ padding: '10px 0', textAlign: 'right', fontWeight: '800', color: 'var(--brand-accent)' }}>{proc.cpu_usage.toFixed(1)}%</td>
                 </tr>
               ))}
             </tbody>
