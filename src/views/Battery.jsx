@@ -7,7 +7,7 @@ export const Battery = ({ metrics, formatTime, notify }) => {
   const updateThreshold = (val) => {
     setThreshold(val);
     invoke("set_battery_threshold", { start: 0, stop: parseInt(val) })
-      .then(() => notify(\`Charge limit set to \${val}%\`))
+      .then(() => notify(`Charge limit set to ${val}%`))
       .catch(err => console.error(err));
   };
 

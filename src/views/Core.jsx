@@ -60,7 +60,7 @@ export const Core = ({ metrics, notify }) => {
                                     <button
                                         className={metrics.config?.usb_autosuspend ? "btn-primary" : "btn-secondary"}
                                         onClick={() => invoke("set_usb_autosuspend", { enabled: !metrics.config?.usb_autosuspend })
-                                            .then(() => notify(\`USB Autosuspend \${!metrics.config?.usb_autosuspend ? 'Enabled' : 'Disabled'}\`))
+                                            .then(() => notify(`USB Autosuspend ${!metrics.config?.usb_autosuspend ? 'Enabled' : 'Disabled'}`))
                                             .catch(console.error)}
                                         style={{ padding: '6px 16px', fontSize: '11px' }}
                                     >{metrics.config?.usb_autosuspend ? "Disable" : "Enable"}</button>
@@ -83,7 +83,7 @@ export const Core = ({ metrics, notify }) => {
                                     <button
                                         className={metrics.config?.sata_alpm ? "btn-primary" : "btn-secondary"}
                                         onClick={() => invoke("set_sata_alpm", { enabled: !metrics.config?.sata_alpm })
-                                            .then(() => notify(\`SATA ALPM \${!metrics.config?.sata_alpm ? 'Enabled' : 'Disabled'}\`))
+                                            .then(() => notify(`SATA ALPM ${!metrics.config?.sata_alpm ? 'Enabled' : 'Disabled'}`))
                                             .catch(console.error)}
                                         style={{ padding: '6px 16px', fontSize: '11px' }}
                                     >{metrics.config?.sata_alpm ? "Disable" : "Enable"}</button>

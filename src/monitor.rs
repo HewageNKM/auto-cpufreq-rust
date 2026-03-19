@@ -139,10 +139,13 @@ impl Monitor {
         self.sys.refresh_processes(ProcessesToUpdate::All);
         let mut procs: Vec<_> = self.sys.processes().iter().map(|(pid, proc)| ProcessInfo {
             name: proc.name().to_string_lossy().to_string(),
-            cpu_usage: 0.0, 
+            cpu_usage: proc.cpu_usage(), 
             pid: pid.as_u32()
         }).collect();
-        let top_processes = procs.into_iter().take(4).collect();
+
+        // Sort by CPU usage descending
+        procs.sort_by(|a, b| b.cpu_usage.partial_cmp(&a.cpu_usage).unwrap_or(std::cmp::Ordering::Equal));
+        let top_processes = procs.into_iter().take(5).collect();
 
         let battery = battery::get_vendor_battery();
         let stats = battery.get_stats().ok();

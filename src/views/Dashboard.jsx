@@ -13,7 +13,7 @@ export const Dashboard = ({ metrics }) => {
   const formatUptime = (sec) => {
     const h = Math.floor(sec / 3600);
     const m = Math.floor((sec % 3600) / 60);
-    return \`\${h}h \${m}m\`;
+    return `${h}h ${m}m`;
   };
 
   return (
@@ -41,7 +41,7 @@ export const Dashboard = ({ metrics }) => {
                   <circle cx="50" cy="50" r="40" stroke="var(--brand-accent)" strokeWidth="10" fill="transparent"
                     strokeDasharray={strokeDash} strokeDashoffset={loadOffset} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
                 </svg>
-                <div style={{ position: 'absolute', top: '50%', left: '50', transform: 'translate(-50%, -50%)', fontSize: '18px', fontWeight: '900' }}>
+                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '18px', fontWeight: '900' }}>
                   {Math.round(cpuLoad)}%
                 </div>
               </div>
@@ -59,7 +59,7 @@ export const Dashboard = ({ metrics }) => {
               <div>
                 <div className="label">Drainage</div>
                 <div className="value" style={{ fontSize: '32px', color: 'var(--energy-amber)' }}>
-                  {metrics.battery_discharge_rate ? \`\${Math.abs(metrics.battery_discharge_rate).toFixed(1)}W\` : "0.0W"}
+                  {metrics.battery_discharge_rate ? `${Math.abs(metrics.battery_discharge_rate).toFixed(1)}W` : "0.0W"}
                 </div>
               </div>
             </div>
@@ -72,7 +72,7 @@ export const Dashboard = ({ metrics }) => {
              </div>
              <div className="mini-stat">
                 <span className="label">Thermal Vitals</span>
-                <span className="val" style={{ color: cpuTemp > 70 ? 'var(--thermal-hot)' : 'var(--text-main)' }}>{cpuTemp ? \`\${cpuTemp.toFixed(1)}°C\` : 'N/A'}</span>
+                <span className="val" style={{ color: cpuTemp > 70 ? 'var(--thermal-hot)' : 'var(--text-main)' }}>{cpuTemp ? `${cpuTemp.toFixed(1)}°C` : 'N/A'}</span>
              </div>
              <div className="mini-stat">
                 <span className="label">System Cycle</span>
@@ -193,7 +193,7 @@ export const Dashboard = ({ metrics }) => {
                 <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
                   <div style={{
                     height: '100%',
-                    width: \`\${isOffline ? 0 : Math.min(100, (core.frequency / 5000) * 100)}%\`,
+                    width: `${isOffline ? 0 : Math.min(100, (core.frequency / 5000) * 100)}%`,
                     background: 'var(--brand-accent)',
                     borderRadius: '2px',
                     boxShadow: isOffline ? 'none' : '0 0 8px var(--brand-accent)',
