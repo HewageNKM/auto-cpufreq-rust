@@ -193,27 +193,40 @@ export const Analytics = ({ history, metrics }) => {
         </div>
 
         <div className="glass-card" style={{ marginTop: '24px' }}>
-          <div className="label">Top CPU Processes</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
-            {metrics.top_processes?.map((proc, i) => (
-              <div key={i} style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                background: 'rgba(255, 255, 255, 0.02)', 
-                padding: '10px 14px', 
-                borderRadius: '8px', 
-                border: '1px solid var(--border)' 
-              }}>
-                <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-main)', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {proc.name}
-                </div>
-                <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--brand-accent)' }}>
-                  {proc.cpu_usage.toFixed(1)}%
-                </div>
-              </div>
-            ))}
-          </div>
+          <div className="label">Resource Utilization (Top CPU Consumers)</div>
+          <table style={{ width: '100%', marginTop: '12px', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <thead>
+              <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+                <th style={{ padding: '8px 4px', fontWeight: '400' }}>Process Name</th>
+                <th style={{ padding: '8px 4px', fontWeight: '400', textAlign: 'right' }}>CPU Load</th>
+              </tr>
+            </thead>
+            <tbody>
+              {metrics.top_processes?.map((proc, i) => (
+                <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                  <td style={{ 
+                    padding: '10px 4px', 
+                    color: 'var(--text-main)', 
+                    fontWeight: '800', 
+                    maxWidth: '140px', 
+                    overflow: 'hidden', 
+                    textOverflow: 'ellipsis', 
+                    whiteSpace: 'nowrap' 
+                  }}>
+                    {proc.name}
+                  </td>
+                  <td style={{ 
+                    padding: '10px 4px', 
+                    textAlign: 'right', 
+                    fontWeight: '800', 
+                    color: 'var(--brand-accent)' 
+                  }}>
+                    {proc.cpu_usage.toFixed(1)}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

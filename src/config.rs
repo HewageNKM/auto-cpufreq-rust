@@ -23,7 +23,7 @@ impl Default for AppConfig {
 
 impl AppConfig {
     fn get_path() -> PathBuf {
-        let mut path = PathBuf::from("/etc/zenith-energy");
+        let mut path = PathBuf::from("/etc/wattwise");
         if !path.exists() {
             let _ = fs::create_dir_all(&path);
         }

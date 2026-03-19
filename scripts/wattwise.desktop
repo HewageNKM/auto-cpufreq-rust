@@ -1,9 +1,9 @@
 [Desktop Entry]
-Name=Zenith Energy
+Name=WattWise
 Comment=Professional CPU Power Optimizer
-Exec=zenith-energy
+Exec=wattwise
 Type=Application
 Terminal=false
-Icon=zenith-energy
-StartupWMClass=zenith-energy
+Icon=wattwise
+StartupWMClass=wattwise
 Categories=System;Settings;

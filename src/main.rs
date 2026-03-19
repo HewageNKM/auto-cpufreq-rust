@@ -1,6 +1,6 @@
-use zenith_energy::monitor::{self, Monitor};
-use zenith_energy::power::PowerManager;
-use zenith_energy::config::AppConfig;
+use wattwise::monitor::{self, Monitor};
+use wattwise::power::PowerManager;
+use wattwise::config::AppConfig;
 use std::sync::Mutex;
 use tauri::{Manager, State, menu::{Menu, MenuItem}, tray::{TrayIconBuilder, MouseButton, MouseButtonState, TrayIconEvent}};
 
@@ -24,7 +24,7 @@ fn set_battery_threshold(start: u8, stop: u8) -> Result<(), String> {
     config.battery_threshold = stop;
     config.save()?;
     
-    use zenith_energy::battery;
+    use wattwise::battery;
     let b = battery::get_vendor_battery();
     b.set_thresholds(start, stop)
 }
@@ -61,7 +61,7 @@ fn get_logs() -> Result<String, String> {
     use std::process::Command;
     let output = Command::new("tail")
         // UPDATED: Pointing to /var/log/
-        .args(["-n", "100", "/var/log/zenith-energy.log"])
+        .args(["-n", "100", "/var/log/wattwise.log"])
         .output()
         .map_err(|e| e.to_string())?;
     
@@ -83,7 +83,7 @@ fn main() {
     if is_daemon {
         let monitor_mutex = Mutex::new(Monitor::new());
         let power_manager = PowerManager::new();
-        println!("Zenith-Energy daemon starting...");
+        println!("WattWise daemon starting...");
         
         loop {
             let metrics = {
@@ -132,7 +132,7 @@ fn main() {
                             if !LOW_BATTERY_NOTIFIED.swap(true, std::sync::atomic::Ordering::SeqCst) {
                                 let _ = Command::new("sh")
                                     .arg("-c")
-                                    .arg("for u in $(who | awk '{print $1}'); do sudo -u $u DISPLAY=:0 notify-send 'Zenith Energy' 'Critical Battery (≤15%): Forcing Efficiency Mode!' 2>/dev/null; done")
+                                    .arg("for u in $(who | awk '{print $1}'); do sudo -u $u DISPLAY=:0 notify-send 'WattWise' 'Critical Battery (≤15%): Forcing Efficiency Mode!' 2>/dev/null; done")
                                     .status();
                             }
                         } else if lvl > 20.0 {
@@ -145,7 +145,7 @@ fn main() {
                             if !HIGH_TEMP_NOTIFIED.swap(true, std::sync::atomic::Ordering::SeqCst) {
                                 let _ = Command::new("sh")
                                     .arg("-c")
-                                    .arg("for u in $(who | awk '{print $1}'); do sudo -u $u DISPLAY=:0 notify-send 'Zenith Energy' 'High Thermal State: Adaptive scaling forcing efficiency.' 2>/dev/null; done")
+                                    .arg("for u in $(who | awk '{print $1}'); do sudo -u $u DISPLAY=:0 notify-send 'WattWise' 'High Thermal State: Adaptive scaling forcing efficiency.' 2>/dev/null; done")
                                     .status();
                             }
                         } else if temp < 75.0 {

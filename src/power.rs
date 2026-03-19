@@ -77,28 +77,53 @@ impl PowerManager {
             *lhl = Instant::now();
         }
 
-        let mut target_tier = match rolling_avg {
-            l if l < 15.0 => Tier::Eco,
-            l if l < 45.0 => Tier::Balanced,
-            l if l < 75.0 => Tier::Performance,
-            _ => Tier::Extreme,
+        let is_charging = metrics.is_charging.unwrap_or(false);
+
+
+        let mut target_tier = if is_charging {
+            match rolling_avg {
+                l if l < 10.0 => Tier::Eco,
+                l if l < 45.0 => Tier::Balanced,
+                l if l < 75.0 => Tier::Performance,
+                _ => Tier::Extreme,
+            }
+        } else {
+            match rolling_avg {
+                l if l < 30.0 => Tier::Eco, 
+                l if l < 60.0 => Tier::Balanced,
+                l if l < 85.0 => Tier::Performance,
+                _ => Tier::Extreme,
+            }
         };
+
 
         let mut max_cores_limit = self.total_cores;
         let mut force_all_cores = false;
         let mut force_turbo_off = false;
+        let mut apply_eco_caps = false;
 
         match metrics.config.operation_mode.as_str() {
             "performance" => {
                 target_tier = Tier::Extreme;
                 force_all_cores = true;
+                self.set_asus_fan_policy(1); // Turbo Boost
             },
             "efficiency" => {
                 target_tier = Tier::Eco;
                 max_cores_limit = (self.total_cores / 2).max(CORE_MINIMUM);
                 force_turbo_off = true;
+                apply_eco_caps = true;
+                self.set_asus_fan_policy(2); // Silent Mode
             },
-            _ => {}
+            _ => {
+                self.set_asus_fan_policy(0); // Standard Mode
+            }
+        }
+
+        if !is_charging {
+            if target_tier == Tier::Balanced {
+                max_cores_limit = (self.total_cores * 3 / 4).max(CORE_MINIMUM);
+            }
         }
 
         let mut current_tier_lock = self.current_tier.lock().unwrap();
@@ -152,16 +177,77 @@ impl PowerManager {
         let state_json = format!("{{\"unpark_count\": {}, \"tier\": \"{:?}\"}}", final_core_target, target_tier);
         let _ = std::fs::write("/run/zenith-energy.state", state_json);
 
-        if metrics.config.usb_autosuspend != self.prev_usb_state.load(Ordering::Relaxed) {
-             self.set_usb_autosuspend(metrics.config.usb_autosuspend);
-             self.prev_usb_state.store(metrics.config.usb_autosuspend, Ordering::Relaxed);
-        }
-        if metrics.config.sata_alpm != self.prev_sata_state.load(Ordering::Relaxed) {
-             self.set_sata_alpm(metrics.config.sata_alpm);
-             self.prev_sata_state.store(metrics.config.sata_alpm, Ordering::Relaxed);
+        // Eco-Exclusive advanced power savings
+        if apply_eco_caps {
+            self.apply_brightness_cap(40.0); // 40% cap
+            self.set_pcie_aspm("powersave");
+            self.set_nmi_watchdog(false);
+            self.set_vm_writeback(3000); 
+            self.set_laptop_mode(5); // Aggressive disk power-saving
+            self.set_smt_status(false); // Disable Hyper-Threading
+            if !self.prev_usb_state.load(Ordering::Relaxed) {
+                self.set_usb_autosuspend(true);
+                self.prev_usb_state.store(true, Ordering::Relaxed);
+            }
+            if !self.prev_sata_state.load(Ordering::Relaxed) {
+                self.set_sata_alpm(true);
+                self.prev_sata_state.store(true, Ordering::Relaxed);
+            }
+        } else {
+            self.set_pcie_aspm("performance");
+            self.set_nmi_watchdog(true);
+            self.set_vm_writeback(1500); // Back to default 15s
+            self.set_laptop_mode(0); // Disable laptop mode Node triggers
+            self.set_smt_status(true); // Re-enable Hyper-Threading
+            if self.prev_usb_state.load(Ordering::Relaxed) {
+                self.set_usb_autosuspend(false);
+                self.prev_usb_state.store(false, Ordering::Relaxed);
+            }
+            if self.prev_sata_state.load(Ordering::Relaxed) {
+                self.set_sata_alpm(false);
+                self.prev_sata_state.store(false, Ordering::Relaxed);
+            }
         }
 
         if target_tier == Tier::Extreme { Duration::from_millis(500) } else { Duration::from_secs(1) }
+    }
+
+    pub fn apply_brightness_cap(&self, max_percentage: f32) {
+        if let Ok(entries) = std::fs::read_dir("/sys/class/backlight") {
+            for entry in entries.flatten() {
+                let max_path = entry.path().join("max_brightness");
+                let cur_path = entry.path().join("brightness");
+                if let (Ok(max_str), Ok(cur_str)) = (std::fs::read_to_string(&max_path), std::fs::read_to_string(&cur_path)) {
+                    if let (Ok(max_val), Ok(cur_val)) = (max_str.trim().parse::<u32>(), cur_str.trim().parse::<u32>()) {
+                        let cap = (max_val as f32 * (max_percentage / 100.0)) as u32;
+                        if cur_val > cap {
+                            let _ = self.safe_write(&cur_path.to_string_lossy(), &cap.to_string());
+                            println!("🔆 Brightness capped to {}% ({} max={})", max_percentage, cap, max_val);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn set_pcie_aspm(&self, policy: &str) {
+        let _ = self.safe_write("/sys/module/pcie_aspm/parameters/policy", policy);
+    }
+
+    pub fn set_nmi_watchdog(&self, enabled: bool) {
+        let _ = self.safe_write("/proc/sys/kernel/nmi_watchdog", if enabled { "1" } else { "0" });
+    }
+
+    pub fn set_vm_writeback(&self, centisecs: u32) {
+        let _ = self.safe_write("/proc/sys/vm/dirty_writeback_centisecs", &centisecs.to_string());
+    }
+
+    pub fn set_laptop_mode(&self, mode: u32) {
+        let _ = self.safe_write("/proc/sys/vm/laptop_mode", &mode.to_string());
+    }
+
+    pub fn set_smt_status(&self, enabled: bool) {
+        let _ = self.safe_write("/sys/devices/system/cpu/smt/control", if enabled { "on" } else { "off" });
     }
 
     pub fn set_usb_autosuspend(&self, enabled: bool) {
@@ -249,5 +335,9 @@ impl PowerManager {
             }
         }
         Ok(())
+    }
+
+    pub fn set_asus_fan_policy(&self, policy: u32) {
+        let _ = self.safe_write("/sys/devices/platform/asus-nb-wmi/throttle_thermal_policy", &policy.to_string());
     }
 }

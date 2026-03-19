@@ -61,27 +61,50 @@ export const Battery = ({ metrics, formatTime, notify }) => {
         </div>
 
         <div className="glass-card" style={{ marginTop: '24px' }}>
-          <div className="label">Technical Vitals (Advanced Telemetry)</div>
-          <div className="stats-grid" style={{ marginTop: '16px' }}>
-            <div className="mini-stat">
-              <span className="label">Potential (Voltage)</span>
-              <span className="val">{metrics.battery_voltage?.toFixed(2) || "N/A"} V</span>
-            </div>
-            <div className="mini-stat">
-              <span className="label">Flow Rate (Current)</span>
-              <span className="val">{metrics.battery_current?.toFixed(3) || "N/A"} A</span>
-            </div>
-            <div className="mini-stat">
-              <span className="label">Design Capacity</span>
-              <span className="val">{(metrics.battery_capacity_design || 0).toFixed(0)}</span>
-            </div>
-            <div className="mini-stat">
-              <span className="label">Full Charge Capacity</span>
-              <span className="val">{(metrics.battery_capacity_full || 0).toFixed(0)}</span>
-            </div>
-          </div>
+          <div className="label" style={{ marginBottom: '16px' }}>Technical Vitals (Advanced Telemetry)</div>
+          <table className="vitals-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+            <thead>
+              <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+                <th style={{ padding: '8px 0', fontWeight: '400' }}>Metric</th>
+                <th style={{ padding: '8px 0', fontWeight: '400' }}>Standard Value</th>
+                <th style={{ padding: '8px 0', fontWeight: '400' }}>Context</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <td style={{ padding: '12px 0', color: 'var(--text-secondary)' }}>Potential</td>
+                <td style={{ padding: '12px 0', fontWeight: '800', color: 'var(--brand-accent)' }}>{metrics.battery_voltage?.toFixed(2) || "N.A"} V</td>
+                <td style={{ padding: '12px 0', fontSize: '10px', color: 'var(--text-secondary)' }}>Current line voltage</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <td style={{ padding: '12px 0', color: 'var(--text-secondary)' }}>Flow Rate</td>
+                <td style={{ padding: '12px 0', fontWeight: '800', color: '#fb1' }}>{metrics.battery_current?.toFixed(3) || "N.A"} A</td>
+                <td style={{ padding: '12px 0', fontSize: '10px', color: 'var(--text-secondary)' }}>Amperage draw/charge</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <td style={{ padding: '12px 0', color: 'var(--text-secondary)' }}>Design Capacity</td>
+                <td style={{ padding: '12px 0', fontWeight: '600' }}>{(metrics.battery_capacity_design || 0).toFixed(2)} Wh/Ah</td>
+                <td style={{ padding: '12px 0', fontSize: '10px', color: 'var(--text-secondary)' }}>Factory spec max</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <td style={{ padding: '12px 0', color: 'var(--text-secondary)' }}>Cycle Integrity</td>
+                <td style={{ padding: '12px 0', fontWeight: '600' }}>{(metrics.battery_capacity_full || 0).toFixed(2)} Wh/Ah</td>
+                <td style={{ padding: '12px 0', fontSize: '10px', color: 'var(--text-secondary)' }}>Current usable max</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <td style={{ padding: '12px 0', color: 'var(--text-secondary)' }}>Hardware</td>
+                <td style={{ padding: '12px 0', fontWeight: '600' }}>{metrics.manufacturer || "Generic"}</td>
+                <td style={{ padding: '12px 0', fontSize: '10px', color: 'var(--text-secondary)' }}>System vendor identity</td>
+              </tr>
+              <tr>
+                <td style={{ padding: '12px 0', color: 'var(--text-secondary)' }}>Serialization</td>
+                <td style={{ padding: '12px 0', fontWeight: '400', fontFamily: 'monospace' }}>{metrics.serial_number || "N.A"}</td>
+                <td style={{ padding: '12px 0', fontSize: '10px', color: 'var(--text-secondary)' }}>Unique component ID</td>
+              </tr>
+            </tbody>
+          </table>
           <div style={{ marginTop: '16px', fontSize: '10px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-            Health calculation: ({((metrics.battery_capacity_full / metrics.battery_capacity_design) * 100).toFixed(1)}%) based on design vs current maximum.
+            Internal calculation: ({((metrics.battery_capacity_full / metrics.battery_capacity_design) * 100).toFixed(1)}%) based on design vs current maximum.
           </div>
         </div>
       </div>

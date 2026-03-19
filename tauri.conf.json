@@ -1,7 +1,7 @@
 {
-  "productName": "Zenith Energy",
+  "productName": "WattWise",
   "version": "1.0.0",
-  "identifier": "com.zenith.energy",
+  "identifier": "com.wattwise.energy",
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
@@ -12,7 +12,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Zenith Energy",
+        "title": "WattWise",
         "width": 800,
         "height": 600,
         "resizable": true,
@@ -35,8 +35,8 @@
       "icons/icon.ico"
     ],
     "resources": [
-      "scripts/zenith-energy.service",
-      "scripts/zenith-ctl.sh"
+      "scripts/wattwise.service",
+      "scripts/wattwise-ctl.sh"
     ],
     "linux": {
       "deb": {
@@ -46,8 +46,8 @@
           "libayatana-appindicator3-1"
         ],
         "files": {
-          "/usr/lib/systemd/system/zenith-energy.service": "scripts/zenith-energy.service",
-          "/usr/bin/zenith-ctl": "scripts/zenith-ctl.sh"
+          "/usr/lib/systemd/system/wattwise.service": "scripts/wattwise.service",
+          "/usr/bin/wattwise-ctl": "scripts/wattwise-ctl.sh"
         }
       }
     }

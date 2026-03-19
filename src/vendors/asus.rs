@@ -33,13 +33,13 @@ impl BatteryProvider for AsusBattery {
             .unwrap_or_else(|| "Unknown".to_string());
 
         let energy_full = self.read_sysfs(&format!("{}/energy_full", bat_path))
-            .and_then(|s| s.parse::<f32>().ok());
+            .and_then(|s| s.parse::<f32>().ok().map(|e| e / 1_000_000.0));
         let energy_now = self.read_sysfs(&format!("{}/energy_now", bat_path))
-            .and_then(|s| s.parse::<f32>().ok());
+            .and_then(|s| s.parse::<f32>().ok().map(|e| e / 1_000_000.0));
         let energy_full_design = self.read_sysfs(&format!("{}/energy_full_design", bat_path))
-            .and_then(|s| s.parse::<f32>().ok());
+            .and_then(|s| s.parse::<f32>().ok().map(|e| e / 1_000_000.0));
         let power_now = self.read_sysfs(&format!("{}/power_now", bat_path))
-            .and_then(|s| s.parse::<f32>().ok());
+            .and_then(|s| s.parse::<f32>().ok().map(|p| p / 1_000_000.0));
         let cycle_count = self.read_sysfs(&format!("{}/cycle_count", bat_path))
             .and_then(|s| s.parse::<u32>().ok());
         let voltage_now = self.read_sysfs(&format!("{}/voltage_now", bat_path))
@@ -48,10 +48,15 @@ impl BatteryProvider for AsusBattery {
             .and_then(|s| s.parse::<f32>().ok().map(|i| i / 1_000_000.0));
         let capacity_design = self.read_sysfs(&format!("{}/energy_full_design", bat_path))
             .or_else(|| self.read_sysfs(&format!("{}/charge_full_design", bat_path)))
-            .and_then(|s| s.parse::<f32>().ok());
+            .and_then(|s| s.parse::<f32>().ok().map(|c| c / 1_000_000.0));
         let capacity_full = self.read_sysfs(&format!("{}/energy_full", bat_path))
             .or_else(|| self.read_sysfs(&format!("{}/charge_full", bat_path)))
-            .and_then(|s| s.parse::<f32>().ok());
+            .and_then(|s| s.parse::<f32>().ok().map(|c| c / 1_000_000.0));
+
+        let manufacturer = self.read_sysfs(&format!("{}/manufacturer", bat_path));
+        let serial_number = self.read_sysfs(&format!("{}/serial_number", bat_path));
+        let model_name = self.read_sysfs(&format!("{}/model_name", bat_path));
+        let technology = self.read_sysfs(&format!("{}/technology", bat_path));
 
         let health = if let (Some(full), Some(design)) = (capacity_full, capacity_design) {
             Some((full / design) * 100.0)
@@ -97,6 +102,10 @@ impl BatteryProvider for AsusBattery {
             current_now,
             capacity_design,
             capacity_full,
+            manufacturer,
+            serial_number,
+            model_name,
+            technology,
         })
     }
 

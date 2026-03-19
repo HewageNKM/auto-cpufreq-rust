@@ -38,6 +38,10 @@ pub struct SystemMetrics {
     pub battery_current: Option<f32>,
     pub battery_capacity_design: Option<f32>,
     pub battery_capacity_full: Option<f32>,
+    pub manufacturer: Option<String>,
+    pub serial_number: Option<String>,
+    pub model_name: Option<String>,
+    pub technology: Option<String>,
     pub cpu_temperature: Option<f32>,
     pub battery_discharge_rate: Option<f32>,
     pub top_processes: Vec<ProcessInfo>,
@@ -162,6 +166,10 @@ impl Monitor {
             battery_current: stats.as_ref().and_then(|s| s.current_now),
             battery_capacity_design: stats.as_ref().and_then(|s| s.capacity_design),
             battery_capacity_full: stats.as_ref().and_then(|s| s.capacity_full),
+            manufacturer: stats.as_ref().and_then(|s| s.manufacturer.clone()),
+            serial_number: stats.as_ref().and_then(|s| s.serial_number.clone()),
+            model_name: stats.as_ref().and_then(|s| s.model_name.clone()),
+            technology: stats.as_ref().and_then(|s| s.technology.clone()),
             cpu_temperature: core_temp,
             battery_discharge_rate: stats.as_ref().and_then(|s| {
                 if let (Some(v), Some(c)) = (s.voltage_now, s.current_now) { Some(v * c) } else { None }
@@ -194,13 +202,13 @@ impl Monitor {
     }
 
     fn read_state(&self, key: &str) -> Option<u32> {
-        std::fs::read_to_string("/run/zenith-energy.state").ok()
+        std::fs::read_to_string("/run/wattwise.state").ok()
             .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
             .and_then(|v| v.get(key).and_then(|k| k.as_u64()).map(|u| u as u32))
     }
 
     fn read_state_str(&self, key: &str) -> Option<String> {
-        std::fs::read_to_string("/run/zenith-energy.state").ok()
+        std::fs::read_to_string("/run/wattwise.state").ok()
             .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
             .and_then(|v| v.get(key).and_then(|k| k.as_str()).map(|s| s.to_string()))
     }

@@ -70,7 +70,7 @@ function App() {
     }
   }, [logs]);
 
-  if (!metrics) return <div className="app-container" style={{background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>Loading Zenith Energy Suite...</div>;
+  if (!metrics) return <div className="app-container" style={{background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>Loading WattWise Suite...</div>;
 
   return (
     <div className={`app-container ${metrics.battery_level <= 15.0 && !metrics.is_charging ? 'power-saver-theme' : ''}`}>

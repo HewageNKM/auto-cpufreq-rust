@@ -30,11 +30,16 @@ impl BatteryProvider for AppleBattery {
             .unwrap_or_else(|| "Unknown".to_string());
 
         let energy_full = self.read_sysfs(&format!("{}/energy_full", bat_path))
-            .and_then(|s| s.parse::<f32>().ok());
+            .and_then(|s| s.parse::<f32>().ok().map(|e| e / 1_000_000.0));
         let _energy_now = self.read_sysfs(&format!("{}/energy_now", bat_path))
             .and_then(|s| s.parse::<f32>().ok());
         let cycle_count = self.read_sysfs(&format!("{}/cycle_count", bat_path))
             .and_then(|s| s.parse::<u32>().ok());
+
+        let manufacturer = self.read_sysfs(&format!("{}/manufacturer", bat_path));
+        let serial_number = self.read_sysfs(&format!("{}/serial_number", bat_path));
+        let model_name = self.read_sysfs(&format!("{}/model_name", bat_path));
+        let technology = self.read_sysfs(&format!("{}/technology", bat_path));
 
         Ok(BatteryStats {
             level,
@@ -52,6 +57,10 @@ impl BatteryProvider for AppleBattery {
             current_now: None,
             capacity_design: None,
             capacity_full: None,
+            manufacturer,
+            serial_number,
+            model_name,
+            technology,
         })
     }
 

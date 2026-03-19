@@ -148,6 +148,22 @@ export const Dashboard = ({ metrics }) => {
             </div>
           </div>
         </div>
+
+        <div className="stat-card">
+          <div className="label">Hardware Identity</div>
+          <div className="value" style={{ fontSize: '15.5px' }}>{metrics.manufacturer || "Generic"}</div>
+          <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+            Serial: {metrics.serial_number || "N/A"}
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="label">Cell Specifications</div>
+          <div className="value" style={{ fontSize: '15.5px' }}>{metrics.model_name || "Primary Unit"}</div>
+          <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+            Chemistry: {metrics.technology || "Lithium-Ion"}
+          </div>
+        </div>
       </div>
 
       {/* Proactive Mode Dashboard Banner */}

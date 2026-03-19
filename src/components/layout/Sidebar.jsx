@@ -14,7 +14,7 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
         <div className="logo-container">
           <img src="/logo.png" alt="Z" />
         </div>
-        <span>Zenith Energy</span>
+        <span>WattWise</span>
       </div>
       <nav className="nav-links">
         {tabs.map((tab) => (

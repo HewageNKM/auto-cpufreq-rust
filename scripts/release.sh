@@ -9,7 +9,7 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}==> Zenith Energy Release Tool${NC}"
+echo -e "${BLUE}==> WattWise Release Tool${NC}"
 
 # Check if script is run as root
 if [ "$EUID" -eq 0 ]; then
@@ -41,7 +41,7 @@ echo -e "${BLUE}==> Building .deb package...${NC}"
 npm run tauri build -- --bundles deb
 
 # 4. SHA256 Checksum
-DEB_FILE="src-tauri/target/release/bundle/deb/zenith-energy_${VERSION}_amd64.deb"
+DEB_FILE="target/release/bundle/deb/WattWise_${VERSION}_amd64.deb"
 # Note: Tauri 2.0 might have different output paths, checking common locations
 if [ ! -f "$DEB_FILE" ]; then
     DEB_FILE=$(find target/release/bundle/deb/ -name "*.deb" | head -n 1)
@@ -71,11 +71,11 @@ for svc in "power-profiles-daemon.service" "tlp.service" "thermald.service"; do
     fi
 done
 
-sudo mkdir -p /etc/zenith-energy
-sudo chmod 777 /etc/zenith-energy
-sudo touch /var/log/zenith-energy.log
-sudo chmod 644 /var/log/zenith-energy.log
+sudo mkdir -p /etc/wattwise
+sudo chmod 777 /etc/wattwise
+sudo touch /var/log/wattwise.log
+sudo chmod 644 /var/log/wattwise.log
 sudo systemctl daemon-reload
-sudo systemctl enable --now zenith-energy.service
+sudo systemctl enable --now wattwise.service
 
-echo -e "${GREEN}SUCCESS: Zenith Energy ${VERSION} installed and running.${NC}"
+echo -e "${GREEN}SUCCESS: WattWise ${VERSION} installed and running.${NC}"
