@@ -1,11 +1,8 @@
 export const Sidebar = ({ activeTab, setActiveTab }) => {
   const tabs = [
     { id: "dashboard", label: "Dashboard", icon: "📊" },
-    { id: "battery", label: "Battery", icon: "🔋" },
-    { id: "analytics", label: "Analytics", icon: "📈" },
-    { id: "logs", label: "Signals", icon: "📡" },
+    { id: "logs", label: "Logs", icon: "📡" },
     { id: "settings", label: "Core", icon: "⚙️" },
-    { id: "about", label: "About", icon: "ℹ️" },
   ];
 
   return (

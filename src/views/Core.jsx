@@ -24,7 +24,7 @@ export const Core = ({ metrics, notify }) => {
                             className={activeMode === "efficiency" ? "btn-primary" : "btn-secondary"}
                             onClick={() => invoke("set_operation_mode", { mode: "efficiency" }).then(() => notify("Efficiency Locked")).catch(console.error)}
                             style={{ flex: 1, padding: '16px' }}
-                        >🔋 Efficiency</button>
+                        >🌱 Efficiency</button>
                     </div>
                 </div>
 

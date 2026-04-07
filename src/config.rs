@@ -5,7 +5,6 @@ use std::path::PathBuf;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AppConfig {
     pub operation_mode: String, // "auto", "performance", "efficiency"
-    pub battery_threshold: u8,
     pub usb_autosuspend: bool,
     pub sata_alpm: bool,
 }
@@ -14,7 +13,6 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             operation_mode: "auto".to_string(),
-            battery_threshold: 80,
             usb_autosuspend: true, // Safe default for Linux
             sata_alpm: true,       // Safe default for Linux
         }

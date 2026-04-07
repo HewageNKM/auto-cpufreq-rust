@@ -77,23 +77,11 @@ impl PowerManager {
             *lhl = Instant::now();
         }
 
-        let is_charging = metrics.is_charging.unwrap_or(false);
-
-
-        let mut target_tier = if is_charging {
-            match rolling_avg {
-                l if l < 10.0 => Tier::Eco,
-                l if l < 45.0 => Tier::Balanced,
-                l if l < 75.0 => Tier::Performance,
-                _ => Tier::Extreme,
-            }
-        } else {
-            match rolling_avg {
-                l if l < 30.0 => Tier::Eco, 
-                l if l < 60.0 => Tier::Balanced,
-                l if l < 85.0 => Tier::Performance,
-                _ => Tier::Extreme,
-            }
+        let target_tier = match rolling_avg {
+            l if l < 10.0 => Tier::Eco,
+            l if l < 45.0 => Tier::Balanced,
+            l if l < 75.0 => Tier::Performance,
+            _ => Tier::Extreme,
         };
 
 
@@ -120,11 +108,7 @@ impl PowerManager {
             }
         }
 
-        if !is_charging {
-            if target_tier == Tier::Balanced {
-                max_cores_limit = (self.total_cores * 3 / 4).max(CORE_MINIMUM);
-            }
-        }
+
 
         let mut current_tier_lock = self.current_tier.lock().unwrap();
         let mut last_trans_lock = self.last_transition.lock().unwrap();

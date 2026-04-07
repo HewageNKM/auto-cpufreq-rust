@@ -28,7 +28,7 @@ export const Dashboard = ({ metrics }) => {
               <h2 style={{ margin: '4px 0', fontSize: '28px', fontWeight: '800' }}>Live Performance Pulse</h2>
             </div>
             <div style={{ padding: '8px 16px', background: 'var(--brand-muted)', borderRadius: '20px', fontSize: '12px', fontWeight: '700', color: 'var(--brand-accent)' }}>
-              {metrics.is_charging ? "🔌 High-Power Mode" : "🔋 Efficiency Mode"}
+              MODE: {metrics.config?.operation_mode?.toUpperCase() || "AUTO"}
             </div>
           </div>
 
@@ -51,18 +51,7 @@ export const Dashboard = ({ metrics }) => {
               </div>
             </div>
 
-            {/* Power Drain */}
-            <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-              <div style={{ width: '48px', height: '48px', background: 'var(--brand-muted)', borderRadius: '12px', display: 'flex', alignItems: 'center', justify: 'center' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--energy-amber)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-              </div>
-              <div>
-                <div className="label">Drainage</div>
-                <div className="value" style={{ fontSize: '32px', color: 'var(--energy-amber)' }}>
-                  {metrics.battery_discharge_rate ? `${Math.abs(metrics.battery_discharge_rate).toFixed(1)}W` : "0.0W"}
-                </div>
-              </div>
-            </div>
+
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '20px', marginTop: '16px', borderTop: '1px solid var(--border)', paddingTop: '24px' }}>
@@ -108,31 +97,10 @@ export const Dashboard = ({ metrics }) => {
 
       {/* SECTION 2: ENERGY INTELLIGENCE */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
-        <div className="group-card">
-          <div className="label">Energy Intelligence (Battery Architecture)</div>
-          <div className="metrics-row">
-            <div className="stat-card">
-              <div className="value" style={{ fontSize: '24px', color: 'var(--success)' }}>{metrics.battery_health ? `${metrics.battery_health.toFixed(1)}%` : "100%"}</div>
-            </div>
-            <div className="stat-card">
-              <div className="label">Charge Loops</div>
-              <div className="value" style={{ fontSize: '24px', color: 'var(--frequency-cyan)' }}>{metrics.battery_cycles || 0}</div>
-            </div>
-          </div>
-          <div style={{ marginTop: '8px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span className="label" style={{ fontSize: '10px' }}>Cell Chemistry</span>
-              <span style={{ fontSize: '12px', fontWeight: '700' }}>{metrics.technology || "Lithium-Ion"}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span className="label" style={{ fontSize: '10px' }}>Model Identifier</span>
-              <span style={{ fontSize: '12px', fontWeight: '700' }}>{metrics.model_name || "Primary"}</span>
-            </div>
-          </div>
-        </div>
+
 
         <div className="group-card">
-          <div className="label">Hardware Identity & Sub-States</div>
+          <div className="label">Hardware Identity</div>
           <div className="stat-card">
             <div className="label">Fabricator</div>
             <div className="value" style={{ fontSize: '22px' }}>{metrics.manufacturer || "Generic"}</div>

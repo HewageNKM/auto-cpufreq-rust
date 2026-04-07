@@ -18,16 +18,7 @@ fn get_metrics(state: State<AppState>) -> Result<monitor::SystemMetrics, String>
     Ok(monitor.get_metrics())
 }
 
-#[tauri::command]
-fn set_battery_threshold(start: u8, stop: u8) -> Result<(), String> {
-    let mut config = AppConfig::load();
-    config.battery_threshold = stop;
-    config.save()?;
-    
-    use wattwise::battery;
-    let b = battery::get_vendor_battery();
-    b.set_thresholds(start, stop)
-}
+
 
 #[tauri::command]
 fn set_usb_autosuspend(state: State<AppState>, enabled: bool) -> Result<(), String> {
@@ -73,7 +64,6 @@ fn get_logs() -> Result<String, String> {
     }
 }
 
-static LOW_BATTERY_NOTIFIED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 static HIGH_TEMP_NOTIFIED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 fn main() {
@@ -104,7 +94,6 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_metrics,
             get_logs,
-            set_battery_threshold,
             set_usb_autosuspend,
             set_sata_alpm,
             set_operation_mode
@@ -125,20 +114,7 @@ fn main() {
                     let state: State<AppState> = app_handle.state();
                     interval = state.power_manager.handle_state_change(&metrics);
 
-                    // Desktop notification triggers
-                    use std::process::Command;
-                    if let (Some(lvl), Some(false)) = (metrics.battery_level, metrics.is_charging) {
-                        if lvl <= 15.0 {
-                            if !LOW_BATTERY_NOTIFIED.swap(true, std::sync::atomic::Ordering::SeqCst) {
-                                let _ = Command::new("sh")
-                                    .arg("-c")
-                                    .arg("for u in $(who | awk '{print $1}'); do sudo -u $u DISPLAY=:0 notify-send 'WattWise' 'Critical Battery (≤15%): Forcing Efficiency Mode!' 2>/dev/null; done")
-                                    .status();
-                            }
-                        } else if lvl > 20.0 {
-                            LOW_BATTERY_NOTIFIED.store(false, std::sync::atomic::Ordering::SeqCst);
-                        }
-                    }
+
 
                     if let Some(temp) = metrics.cpu_temperature {
                         if temp >= 85.0 {

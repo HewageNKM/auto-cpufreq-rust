@@ -1,6 +1,5 @@
 use sysinfo::{System, ProcessesToUpdate};
 use serde::{Serialize, Deserialize};
-use crate::battery;
 use crate::config::AppConfig;
 use procfs::CurrentSI; 
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -40,22 +39,7 @@ pub struct SystemMetrics {
     pub memory_used: u64,
     pub memory_total: u64,
     pub disk_usage: f32,
-    pub battery_level: Option<f32>,
-    pub is_charging: Option<bool>,
-    pub battery_health: Option<f32>,
-    pub battery_cycles: Option<u32>,
-    pub battery_time_remaining: Option<f32>,
-    pub battery_vendor: String,
-    pub battery_voltage: Option<f32>,
-    pub battery_current: Option<f32>,
-    pub battery_capacity_design: Option<f32>,
-    pub battery_capacity_full: Option<f32>,
-    pub manufacturer: Option<String>,
-    pub serial_number: Option<String>,
-    pub model_name: Option<String>,
-    pub technology: Option<String>,
     pub cpu_temperature: Option<f32>,
-    pub battery_discharge_rate: Option<f32>,
     pub top_processes: Vec<ProcessInfo>,
     pub config: AppConfig,
     pub daemon_unpark_count: Option<u32>,
@@ -215,8 +199,6 @@ impl Monitor {
         procs.sort_by(|a, b| b.cpu_usage.partial_cmp(&a.cpu_usage).unwrap_or(std::cmp::Ordering::Equal));
         let top_processes = procs.into_iter().take(5).collect();
 
-        let battery = battery::get_vendor_battery();
-        let stats = battery.get_stats().ok();
         let load = System::load_average();
 
         let config = AppConfig::load();
@@ -229,26 +211,9 @@ impl Monitor {
             memory_used: self.sys.used_memory(),
             memory_total: self.sys.total_memory(),
             disk_usage: self.cached_disk,
-            battery_level: stats.as_ref().map(|s| s.level),
-            is_charging: stats.as_ref().map(|s| s.is_charging),
-            battery_health: stats.as_ref().and_then(|s| s.health),
-            battery_cycles: stats.as_ref().and_then(|s| s.cycle_count),
-            battery_time_remaining: stats.as_ref().and_then(|s| s.time_remaining),
-            battery_vendor: stats.as_ref().map(|s| s.vendor.clone()).unwrap_or_else(|| "None".to_string()),
-            battery_voltage: stats.as_ref().and_then(|s| s.voltage_now),
-            battery_current: stats.as_ref().and_then(|s| s.current_now),
-            battery_capacity_design: stats.as_ref().and_then(|s| s.capacity_design),
-            battery_capacity_full: stats.as_ref().and_then(|s| s.capacity_full),
-            manufacturer: stats.as_ref().and_then(|s| s.manufacturer.clone()),
-            serial_number: stats.as_ref().and_then(|s| s.serial_number.clone()),
-            model_name: stats.as_ref().and_then(|s| s.model_name.clone()),
-            technology: stats.as_ref().and_then(|s| s.technology.clone()),
             cpu_temperature: core_temp,
-            battery_discharge_rate: stats.as_ref().and_then(|s| {
-                if let (Some(v), Some(c)) = (s.voltage_now, s.current_now) { Some(v * c) } else { None }
-            }),
             top_processes,
-            events: self.update_events(stats.as_ref().map(|s| s.is_charging), config.operation_mode.clone()),
+            events: self.update_events(config.operation_mode.clone()),
             config,
             daemon_unpark_count: self.read_state("unpark_count"),
             daemon_max_perf_pct: self.read_state("max_perf_pct"),
@@ -256,23 +221,9 @@ impl Monitor {
         }
     }
 
-    fn update_events(&mut self, is_charging: Option<bool>, mode: String) -> Vec<SystemEvent> {
+    fn update_events(&mut self, mode: String) -> Vec<SystemEvent> {
         let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
         let mut new_events = Vec::new();
-
-        // AC/DC Detection
-        if let Some(charging) = is_charging {
-            if let Some(prev) = self.last_power_state {
-                if charging != prev {
-                    new_events.push(SystemEvent {
-                        timestamp: now,
-                        event_type: "POWER_SHIFT".to_string(),
-                        description: format!("Power source changed to {}", if charging { "AC Adapter" } else { "Battery" }),
-                    });
-                }
-            }
-            self.last_power_state = Some(charging);
-        }
 
         // Mode Change Detection
         if let Some(prev_mode) = &self.last_mode {

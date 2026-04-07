@@ -4,11 +4,8 @@ import "./App.css";
 
 // View Imports
 import { Dashboard } from "./views/Dashboard";
-import { Battery } from "./views/Battery";
-import { Analytics } from "./views/Analytics";
-import { Signals } from "./views/Signals";
+import { Logs } from "./views/Logs";
 import { Core } from "./views/Core";
-import { About } from "./views/About";
 
 // Component Imports
 import { Sidebar } from "./components/layout/Sidebar";
@@ -25,12 +22,7 @@ function App() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const formatTime = (hours) => {
-    if (!hours) return "Calculating...";
-    const h = Math.floor(hours);
-    const m = Math.round((hours - h) * 60);
-    return `${h}h ${m}m`;
-  };
+
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -45,8 +37,7 @@ function App() {
             time: new Date().toLocaleTimeString(),
             usage: res.total_cpu_usage,
             frequency: avgFreq,
-            temperature: res.cpu_temperature || 0,
-            battery: res.battery_level || 0
+            temperature: res.cpu_temperature || 0
           }]);
           setError(null);
         })
@@ -60,7 +51,7 @@ function App() {
   if (!metrics) return <div className="app-container" style={{background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>Loading WattWise Suite...</div>;
 
   return (
-    <div className={`app-container ${metrics.battery_level <= 15.0 && !metrics.is_charging ? 'power-saver-theme' : ''}`}>
+    <div className="app-container">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
       <div className="content-container">
@@ -68,7 +59,7 @@ function App() {
           <div className="status-indicator" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)', boxShadow: '0 0 8px var(--success)' }}></div>
             <span style={{ fontSize: '11px', fontWeight: '800', letterSpacing: '0.05em', opacity: 0.7 }}>
-                {metrics.is_charging ? "AC POWER" : "BATTERY"}
+                STATUS: NOMINAL
             </span>
           </div>
           <div style={{ fontSize: '11px', fontWeight: '600', opacity: 0.5 }}>
@@ -86,11 +77,8 @@ function App() {
           {error && <div className="glass-card" style={{ color: "#ef4444", borderColor: '#ef4444', marginBottom: '24px' }}>{error}</div>}
           
           {activeTab === "dashboard" && <Dashboard metrics={metrics} />}
-          {activeTab === "battery" && <Battery metrics={metrics} formatTime={formatTime} notify={notify} />}
-          {activeTab === "analytics" && <Analytics history={history} metrics={metrics} />}
-          {activeTab === "logs" && <Signals metrics={metrics} />}
+          {activeTab === "logs" && <Logs metrics={metrics} />}
           {activeTab === "settings" && <Core metrics={metrics} notify={notify} />}
-          {activeTab === "about" && <About />}
         </main>
       </div>
     </div>

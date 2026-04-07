@@ -33,17 +33,7 @@
   }
 }
 
-.power-saver-theme {
-  --bg-color: #040406;
-  --panel-bg: rgba(0, 0, 0, 0.6);
-  --brand-accent: #ff4757; /* Emergency Red */
-  animation: pulse-dim 8s infinite ease-in-out;
-}
 
-@keyframes pulse-dim {
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(0.85); }
-}
 
 body {
   margin: 0;
@@ -301,92 +291,7 @@ header {
   text-transform: uppercase;
 }
 
-/* Analytics Advanced Visuals */
-.efficiency-gauge-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  width: 140px;
-  height: 140px;
-}
 
-.heatmap-grid {
-  display: grid;
-  grid-template-columns: repeat(15, 1fr);
-  gap: 2px;
-  background: rgba(0,0,0,0.3);
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-}
-
-.heatmap-cell {
-  aspect-ratio: 1;
-  border-radius: 2px;
-  transition: background 0.5s ease;
-}
-
-.eco-box {
-  background: linear-gradient(135deg, rgba(0, 255, 136, 0.05), rgba(0, 255, 170, 0.1));
-  border: 1px solid var(--success);
-  border-radius: 16px;
-  padding: 20px;
-  margin-top: 24px;
-}
-
-.eco-value {
-  font-size: 32px;
-  font-weight: 900;
-  color: var(--success);
-  margin: 4px 0;
-}
-
-/* Battery Advanced Visuals */
-.endurance-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-top: 24px;
-}
-
-.endurance-box {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 16px;
-  text-align: center;
-  transition: var(--transition);
-}
-
-.endurance-box:hover {
-  background: var(--brand-muted);
-  border-color: var(--brand-accent);
-}
-
-.endurance-time {
-  font-size: 20px;
-  font-weight: 900;
-  margin: 4px 0;
-}
-
-.sparkline-container {
-  height: 40px;
-  width: 100%;
-  padding-top: 10px;
-}
-
-.lifecycle-badge {
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
 
 /* Logs Page */
 .log-stream {
