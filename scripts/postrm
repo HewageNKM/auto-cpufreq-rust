@@ -1,0 +1,18 @@
+#!/bin/bash
+# WattWise post-removal script
+# Unmasks previously disabled power management services for safety.
+
+SERVICES=("tlp" "auto-cpufreq" "power-profiles-daemon" "laptop-mode-tools" "thermald")
+
+echo "WattWise: Restoring accessibility to other power management services..."
+
+for SVC in "${SERVICES[@]}"; do
+    if systemctl list-unit-files | grep -q "^$SVC\.service"; then
+        echo "WattWise: Unmasking service: $SVC"
+        systemctl unmask "$SVC" 2>/dev/null
+    fi
+done
+
+echo "WattWise: Removal cleanup complete."
+
+exit 0

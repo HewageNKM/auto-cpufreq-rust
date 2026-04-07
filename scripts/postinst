@@ -1,0 +1,25 @@
+#!/bin/bash
+# WattWise post-installation script
+# Automatically disables competing power management services to prevent conflicts.
+
+SERVICES=("tlp" "auto-cpufreq" "power-profiles-daemon" "laptop-mode-tools" "thermald")
+
+echo "WattWise: Scanning for competing power management services..."
+
+for SVC in "${SERVICES[@]}"; do
+    if systemctl list-unit-files | grep -q "^$SVC\.service"; then
+        if systemctl is-active --quiet "$SVC"; then
+            echo "WattWise: Stopping and masking competing service: $SVC"
+            systemctl stop "$SVC" 2>/dev/null
+            systemctl disable "$SVC" 2>/dev/null
+            systemctl mask "$SVC" 2>/dev/null
+        else
+            echo "WattWise: Service $SVC found but already inactive. Masking to prevent accidental startup."
+            systemctl mask "$SVC" 2>/dev/null
+        fi
+    fi
+done
+
+echo "WattWise: Conflict resolution complete. Core unparking and thermal logic are now primary."
+
+exit 0
