@@ -22,21 +22,17 @@ fn get_metrics(state: State<AppState>) -> Result<monitor::SystemMetrics, String>
 
 
 #[tauri::command]
-fn set_usb_autosuspend(state: State<AppState>, enabled: bool) -> Result<(), String> {
+fn set_usb_autosuspend(enabled: bool) -> Result<(), String> {
     let mut config = AppConfig::load();
     config.usb_autosuspend = enabled;
-    config.save()?;
-    state.power_manager.set_usb_autosuspend(enabled);
-    Ok(())
+    config.save()
 }
 
 #[tauri::command]
-fn set_sata_alpm(state: State<AppState>, enabled: bool) -> Result<(), String> {
+fn set_sata_alpm(enabled: bool) -> Result<(), String> {
     let mut config = AppConfig::load();
     config.sata_alpm = enabled;
-    config.save()?;
-    state.power_manager.set_sata_alpm(enabled);
-    Ok(())
+    config.save()
 }
 
 #[tauri::command]
@@ -65,66 +61,52 @@ fn get_logs() -> Result<String, String> {
 }
 
 #[tauri::command]
-fn set_pcie_aspm(state: State<AppState>, enabled: bool) -> Result<(), String> {
+fn set_pcie_aspm(enabled: bool) -> Result<(), String> {
     let mut config = AppConfig::load();
     config.pcie_aspm = enabled;
-    config.save()?;
-    state.power_manager.set_pcie_aspm(if enabled { "powersave" } else { "performance" });
-    Ok(())
+    config.save()
 }
 
 #[tauri::command]
-fn set_nmi_watchdog(state: State<AppState>, enabled: bool) -> Result<(), String> {
+fn set_nmi_watchdog(enabled: bool) -> Result<(), String> {
     let mut config = AppConfig::load();
     config.nmi_watchdog = enabled;
-    config.save()?;
-    state.power_manager.set_nmi_watchdog(enabled);
-    Ok(())
+    config.save()
 }
 
 #[tauri::command]
-fn set_vm_writeback(state: State<AppState>, enabled: bool) -> Result<(), String> {
+fn set_vm_writeback(enabled: bool) -> Result<(), String> {
     let mut config = AppConfig::load();
     config.vm_writeback = enabled;
-    config.save()?;
-    state.power_manager.set_vm_writeback(if enabled { 3000 } else { 1500 });
-    Ok(())
+    config.save()
 }
 
 #[tauri::command]
-fn set_laptop_mode(state: State<AppState>, enabled: bool) -> Result<(), String> {
+fn set_laptop_mode(enabled: bool) -> Result<(), String> {
     let mut config = AppConfig::load();
     config.laptop_mode = enabled;
-    config.save()?;
-    state.power_manager.set_laptop_mode(if enabled { 5 } else { 0 });
-    Ok(())
+    config.save()
 }
 
 #[tauri::command]
-fn set_smt_status(state: State<AppState>, enabled: bool) -> Result<(), String> {
+fn set_smt_status(enabled: bool) -> Result<(), String> {
     let mut config = AppConfig::load();
     config.smt_status = enabled;
-    config.save()?;
-    state.power_manager.set_smt_status(enabled);
-    Ok(())
+    config.save()
 }
 
 #[tauri::command]
-fn set_bluetooth_enabled(state: State<AppState>, enabled: bool) -> Result<(), String> {
+fn set_bluetooth_enabled(enabled: bool) -> Result<(), String> {
     let mut config = AppConfig::load();
     config.bluetooth_enabled = enabled;
-    config.save()?;
-    state.power_manager.set_bluetooth_state(enabled);
-    Ok(())
+    config.save()
 }
 
 #[tauri::command]
-fn set_wifi_enabled(state: State<AppState>, enabled: bool) -> Result<(), String> {
+fn set_wifi_enabled(enabled: bool) -> Result<(), String> {
     let mut config = AppConfig::load();
     config.wifi_enabled = enabled;
-    config.save()?;
-    state.power_manager.set_wifi_state(enabled);
-    Ok(())
+    config.save()
 }
 
 static HIGH_TEMP_NOTIFIED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
