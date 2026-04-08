@@ -87,7 +87,7 @@ impl PowerManager {
         let operation_mode = metrics.config.operation_mode.as_str();
 
         // --- 2. Profile & Strategy Selection ---
-        let (target_tier, mut apply_eco_caps) = match operation_mode {
+        let (target_tier, apply_eco_caps) = match operation_mode {
             "performance" => {
                 force_all_cores = true;
                 self.set_asus_fan_policy(1); // Turbo Boost

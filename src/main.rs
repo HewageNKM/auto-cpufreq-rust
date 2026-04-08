@@ -157,7 +157,6 @@ fn main() {
 
             // Background optimization loop
             std::thread::spawn(move || {
-                let mut interval = std::time::Duration::from_secs(5);
                 loop {
                     let metrics = {
                         let state: State<AppState> = app_handle.state();
@@ -166,7 +165,7 @@ fn main() {
                     };
                     
                     let state: State<AppState> = app_handle.state();
-                    interval = state.power_manager.handle_state_change(&metrics);
+                    let interval = state.power_manager.handle_state_change(&metrics);
 
 
 
