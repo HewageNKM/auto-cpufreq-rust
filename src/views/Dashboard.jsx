@@ -91,6 +91,17 @@ export const Dashboard = ({ metrics }) => {
                 {metrics.config?.operation_mode === 'auto' || !metrics.config?.operation_mode ? 'AUTOPILOT ENGINE' : 'STATIC LOCK'}
               </div>
             </div>
+            <div className="stat-card" style={{ padding: '16px', background: 'rgba(255,255,255,0.02)' }}>
+              <div className="label" style={{ fontSize: '10px' }}>Power Source</div>
+              <div style={{ fontSize: '18px', fontWeight: '800', color: metrics.is_on_ac ? 'var(--brand-accent)' : 'var(--energy-amber)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {metrics.is_on_ac ? '🔌 AC POWER' : '🔋 BATTERY'}
+                {metrics.battery_level !== undefined && metrics.battery_level !== null && (
+                  <span style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '600' }}>
+                    ({metrics.battery_level}%)
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

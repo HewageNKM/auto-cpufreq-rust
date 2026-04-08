@@ -46,6 +46,7 @@ pub struct SystemMetrics {
     pub daemon_max_perf_pct: Option<u32>,
     pub daemon_tier: Option<String>,
     pub is_on_ac: bool,
+    pub battery_level: Option<u32>,
     pub events: Vec<SystemEvent>,
 }
 
@@ -224,6 +225,7 @@ impl Monitor {
             daemon_max_perf_pct: self.read_state("max_perf_pct"),
             daemon_tier: self.read_state_str("tier"),
             is_on_ac: self.check_ac_power(),
+            battery_level: self.get_battery_level(),
         }
     }
 
@@ -243,6 +245,24 @@ impl Monitor {
             }
         }
         false
+    }
+
+    fn get_battery_level(&self) -> Option<u32> {
+        if let Ok(entries) = std::fs::read_dir("/sys/class/power_supply") {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if let Ok(t) = std::fs::read_to_string(path.join("type")) {
+                    if t.trim() == "Battery" {
+                        if let Ok(cap_str) = std::fs::read_to_string(path.join("capacity")) {
+                            if let Ok(cap) = cap_str.trim().parse::<u32>() {
+                                return Some(cap);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        None
     }
 
     fn update_events(&mut self, mode: String, current_temp: Option<f32>, top_procs: &Vec<ProcessInfo>) -> Vec<SystemEvent> {
