@@ -4,7 +4,6 @@ use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
-const LOW_LOAD_THRESHOLD_TICKS: usize = 12; 
 const THERMAL_MIN_CELSIUS: f32 = 65.0; 
 const THERMAL_MAX_CELSIUS: f32 = 85.0;
 const CORE_MINIMUM: usize = 2;              
@@ -191,8 +190,9 @@ impl PowerManager {
             final_core_target = ideal_clamped;
         } else if ideal_clamped < current_unparked {
             // Conservative parking for stability
+            let low_load_stability_goal = if metrics.is_on_ac { 5 } else { 15 };
             let ticks = self.low_load_ticks.fetch_add(1, Ordering::Relaxed);
-            if ticks >= LOW_LOAD_THRESHOLD_TICKS {
+            if ticks >= low_load_stability_goal {
                 final_core_target = ideal_clamped;
                 self.low_load_ticks.store(0, Ordering::Relaxed);
             }
@@ -282,35 +282,35 @@ impl PowerManager {
                 }
             }
         } else {
-            // Restore Performance States (or if on AC)
-            if metrics.is_on_ac || cpu_temp < THERMAL_MIN_CELSIUS - 5.0 {
-                self.set_pcie_aspm(if metrics.is_on_ac { "performance" } else { "powersave" });
-                self.set_nmi_watchdog(true);
-                self.set_vm_writeback(1500); 
-                self.set_laptop_mode(0); 
-                self.set_smt_status(true);
-                
-                // On AC, unblock radios immediately
-                if metrics.is_on_ac {
-                    if !self.prev_wifi_state.load(Ordering::Relaxed) {
-                        self.set_wifi_state(true);
-                        self.prev_wifi_state.store(true, Ordering::Relaxed);
-                    }
-                    if !self.prev_bluetooth_state.load(Ordering::Relaxed) {
-                        self.set_bluetooth_state(true);
-                        self.prev_bluetooth_state.store(true, Ordering::Relaxed);
-                    }
-                }
+            // --- 5b. Restoration (Performance Context) ---
+            // On AC or in static Performance mode, we lift power caps.
+            // Note: Thermal safety still applies via the smoothing engine above.
+            
+            self.set_pcie_aspm(if metrics.is_on_ac { "performance" } else { "powersave" });
+            self.set_nmi_watchdog(true);
+            self.set_vm_writeback(1500); 
+            self.set_laptop_mode(0); 
+            self.set_smt_status(true);
+            
+            // Restore static peripherals to high-performance
+            if self.prev_usb_state.load(Ordering::Relaxed) {
+                self.set_usb_autosuspend(false);
+                self.prev_usb_state.store(false, Ordering::Relaxed);
+            }
+            if self.prev_sata_state.load(Ordering::Relaxed) {
+                self.set_sata_alpm(false);
+                self.prev_sata_state.store(false, Ordering::Relaxed);
+            }
 
-                if self.prev_usb_state.load(Ordering::Relaxed) != (config.usb_autosuspend && apply_eco_caps) {
-                    let target = config.usb_autosuspend && apply_eco_caps;
-                    self.set_usb_autosuspend(target);
-                    self.prev_usb_state.store(target, Ordering::Relaxed);
+            // In Performance Context + AC, unblock radios immediately
+            if metrics.is_on_ac {
+                if !self.prev_wifi_state.load(Ordering::Relaxed) {
+                    self.set_wifi_state(true);
+                    self.prev_wifi_state.store(true, Ordering::Relaxed);
                 }
-                if self.prev_sata_state.load(Ordering::Relaxed) != (config.sata_alpm && apply_eco_caps) {
-                    let target = config.sata_alpm && apply_eco_caps;
-                    self.set_sata_alpm(target);
-                    self.prev_sata_state.store(target, Ordering::Relaxed);
+                if !self.prev_bluetooth_state.load(Ordering::Relaxed) {
+                    self.set_bluetooth_state(true);
+                    self.prev_bluetooth_state.store(true, Ordering::Relaxed);
                 }
             }
         }
