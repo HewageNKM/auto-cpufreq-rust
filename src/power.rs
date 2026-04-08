@@ -91,23 +91,24 @@ impl PowerManager {
         let operation_mode = metrics.config.operation_mode.as_str();
 
         // --- 2. Profile & Strategy Selection ---
-        let (target_tier, apply_eco_caps) = match operation_mode {
+        let target_tier = match operation_mode {
             "performance" => {
                 force_all_cores = true;
                 self.set_asus_fan_policy(1); // Turbo Boost
-                (Tier::Extreme, false)
+                Tier::Extreme
             },
             "efficiency" => {
                 max_cores_limit = (self.total_cores / 2).max(CORE_MINIMUM);
                 force_turbo_off = true;
                 self.set_asus_fan_policy(2); // Silent Mode
-                (Tier::Eco, true)
+                Tier::Eco
             },
             _ => { // Auto-Pilot
                 self.set_asus_fan_policy(0); // Standard Mode
                 let is_ac = metrics.is_on_ac;
+                let battery_level = metrics.battery_level.unwrap_or(100);
                 
-                let tier = if is_ac {
+                let mut tier = if is_ac {
                     match rolling_avg { // Performance-biased thresholds for AC
                         l if l < 10.0 => Tier::Eco,
                         l if l < 30.0 => Tier::Balanced,
@@ -115,16 +116,83 @@ impl PowerManager {
                         _ => Tier::Extreme,
                     }
                 } else {
-                    match rolling_avg { // Efficiency-biased thresholds for Battery
-                        l if l < 20.0 => Tier::Eco,
-                        l if l < 55.0 => Tier::Balanced,
-                        l if l < 80.0 => Tier::Performance,
-                        _ => Tier::Extreme,
+                    if battery_level <= 20 {
+                        match rolling_avg { // Ultra-Efficiency thresholds for Critical Battery
+                            l if l < 50.0 => Tier::Eco,
+                            l if l < 90.0 => Tier::Balanced,
+                            _ => Tier::Performance, // Extreme disabled
+                        }
+                    } else {
+                        match rolling_avg { // Efficiency-biased thresholds for Battery
+                            l if l < 20.0 => Tier::Eco,
+                            l if l < 55.0 => Tier::Balanced,
+                            l if l < 80.0 => Tier::Performance,
+                            _ => Tier::Extreme,
+                        }
                     }
                 };
-                (tier, !is_ac)
+
+                // Foreground App Acceleration (Creator Boost)
+                let creator_apps = ["blender", "rustc", "cargo", "docker", "kdenlive", "obs", "steam", "wine", "node", "vite"];
+                let mut is_creator_heavy = false;
+                if let Some(top_proc) = metrics.top_processes.first() {
+                    if top_proc.cpu_usage > 15.0 {
+                        for app in creator_apps {
+                            if top_proc.name.contains(app) {
+                                is_creator_heavy = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if is_creator_heavy && tier != Tier::Extreme && tier != Tier::Performance {
+                    if battery_level > 20 { // Do not override critical battery limits
+                        self.log_event("CREATOR_BOOST", &format!("Heavy foreground app detected ({}). Bypassing EMA for immediate performance tier.", metrics.top_processes[0].name));
+                        tier = Tier::Performance;
+                    }
+                }
+
+                // Process-Aware Workload Suppression
+                let background_daemons = ["baloo_file", "tracker-miner-fs", "btrfs-cleaner", "updatedb", "packagekitd", "fwupd", "snapd"];
+                let mut is_background_heavy = false;
+                if let Some(top_proc) = metrics.top_processes.first() {
+                    if top_proc.cpu_usage > 15.0 {
+                        for daemon in background_daemons {
+                            if top_proc.name.contains(daemon) {
+                                is_background_heavy = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if is_background_heavy && (tier == Tier::Extreme || tier == Tier::Performance) {
+                    self.log_event("WORKLOAD_SUPPRESSED", &format!("Preventing performance burst for background daemon ({}).", metrics.top_processes[0].name));
+                    tier = Tier::Balanced;
+                }
+
+                // Thermal-Aware Tier Demotion
+                if cpu_temp > 80.0 && (tier == Tier::Extreme || tier == Tier::Performance) {
+                    self.log_event("THERMAL_DEMOTION", &format!("High Temp ({:.1}°C). Demoting Auto-Pilot tier to Balanced.", cpu_temp));
+                    tier = Tier::Balanced;
+                }
+
+                // Memory-Pressure Bottleneck Recognition
+                if metrics.memory_total > 0 {
+                    let mem_pressure = (metrics.memory_used as f64 / metrics.memory_total as f64) * 100.0;
+                    if mem_pressure > 90.0 && tier == Tier::Extreme {
+                        self.log_event("MEMORY_BOTTLENECK", &format!("RAM saturation at {:.1}%. Demoting Auto-Pilot tier to Balanced to save power during I/O wait.", mem_pressure));
+                        tier = Tier::Balanced;
+                    }
+                }
+
+                tier
             }
         };
+
+        // Peripherals strictly linked to Power Source
+        let apply_eco_caps = !metrics.is_on_ac;
 
         // --- 3. Stability & Transitions ---
         let mut current_tier_lock = self.current_tier.lock().unwrap();
